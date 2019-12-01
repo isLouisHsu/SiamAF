@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-11-30 19:11:04
+@LastEditTime: 2019-12-01 12:57:13
 @Update: 
 '''
 import torch
@@ -57,8 +57,8 @@ class SiamRPN(nn.Module):
             z: {tensor(N, 3, 127, 127)}
             x: {tensor(N, 3, 255, 255)}
         Returns:
-            pred_cls: {tensor(N, n_anchor, 17, 17)}
-            pred_reg: {tensor(N, n_anchor, 17, 17)}
+            pred_cls: {tensor(N,    n_anchor, 17, 17)}
+            pred_reg: {tensor(N, 4, n_anchor, 17, 17)}
         Notes:
             - 255 // 17 = 15
         """

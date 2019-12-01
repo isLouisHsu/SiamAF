@@ -77,8 +77,8 @@ def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
     cx, cy, w, h = map(lambda x: x + zero, [cx, cy, w, h])
     x1, y1, x2, y2 = center2corner([cx, cy, w, h])
 
-    center = np.stack([cx, cy, w, h]).transpose(2, 3, 1, 0)
-    corner = np.stack([x1, y1, x2, y2]).transpose(2, 3, 1, 0)
+    center = np.stack([cx, cy, w, h])
+    corner = np.stack([x1, y1, x2, y2])
 
     return center, corner
 

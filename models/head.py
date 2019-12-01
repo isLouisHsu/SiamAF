@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 15:28:34
-@LastEditTime: 2019-11-30 19:10:50
+@LastEditTime: 2019-12-01 12:59:23
 @Update: 
 '''
 import torch
@@ -50,8 +50,8 @@ class RpnHead(nn.Module):
             z_f: {tensor(N, in_channels, Hz, Wz)} feature extracted from template
             x_f: {tensor(N, in_channels, Hx, Wx)} feature extracted from search
         Returns:
-            pred_cls: {tensor(N, num_anchor,     H, W)}
-            pred_reg: {tensor(N, num_anchor * 4, H, W)}
+            pred_cls: {tensor(N,    num_anchor, H, W)}
+            pred_reg: {tensor(N, 4, num_anchor, H, W)}
         """
         cls_feature = self.search_cls(x_f)      # (N, out_channels, Hx', Wx')
         reg_feature = self.search_reg(x_f)      # (N, out_channels, Hx', Wx')
@@ -62,8 +62,11 @@ class RpnHead(nn.Module):
         cls_kernel = cls_kernel.view(-1, cls_feature.size(1), *cls_kernel.size()[2:])   # (N, out_channels * num_anchor,     Hz', Wz')
         reg_kernel = reg_kernel.view(-1, reg_feature.size(1), *reg_kernel.size()[2:])   # (N, out_channels * num_anchor * 4, Hz', Wz')
         
-        pred_cls = self._conv(cls_feature, cls_kernel)              # (N, num_anchor, H, W)
-        pred_reg = self.adjust(self._conv(reg_feature, reg_kernel)) # (N, num_anchor * 4, H, W)
+        pred_cls = torch.sigmoid(self._conv(cls_feature, cls_kernel))   # (N, num_anchor, H, W)
+        pred_reg = self.adjust(self._conv(reg_feature, reg_kernel))     # (N, num_anchor * 4, H, W)
+
+        size = [pred_cls.size(0), 4, *pred_cls.size()[1:]]
+        pred_reg = pred_reg.view(size)
 
         return pred_cls, pred_reg
                 
@@ -109,11 +112,11 @@ class HeatmapHead(nn.Module):
         return pred_heat, pred_reg
         
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
     
-#     in_channels = 256
-#     # m = RpnHead(in_channels)
-#     m = AfHead(in_channels)
-#     z = torch.rand(5, in_channels,  6,  6)
-#     x = torch.rand(5, in_channels, 22, 22)
-#     m(z, x)
+    in_channels = 256
+    m = RpnHead(in_channels)
+    # m = AfHead(in_channels)
+    z = torch.rand(5, in_channels,  6,  6)
+    x = torch.rand(5, in_channels, 22, 22)
+    m(z, x)
