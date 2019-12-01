@@ -205,3 +205,16 @@ def nms(boxes, scores, overlap=0.5, top_k=200):
         # keep only elements with an IoU <= overlap
         idx = idx[IoU.le(overlap)]
     return keep, count
+
+def show_bbox(im, bbox, winname="", waitkey=0):
+    """
+    Params:
+        im: {ndarray(H, W, 3)}
+        bbox: {ndarray(N, 4)} x1, y1, x2, y2
+    """
+    image = im.copy()
+    bbox = bbox.reshape(-1, 4).astype(np.int)
+    for x1, y1, x2, y2 in bbox:
+        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+    cv2.imshow(winname, image)
+    cv2.waitKey(waitkey)
