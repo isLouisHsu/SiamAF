@@ -1,5 +1,99 @@
 # -*- coding: utf-8 -*-
+import cv2
+import math
 import torch
+import numpy as np
+
+def corner2center(corner):
+    """
+    [x1, y1, x2, y2] --> [cx, cy, w, h]
+    """
+    x1, y1, x2, y2 = corner[0], corner[1], corner[2], corner[3]
+    x = (x1 + x2) * 0.5
+    y = (y1 + y2) * 0.5
+    w = x2 - x1
+    h = y2 - y1
+    return x, y, w, h
+
+def center2corner(center):
+    """
+    [cx, cy, w, h] --> [x1, y1, x2, y2]
+    """
+    x, y, w, h = center[0], center[1], center[2], center[3]
+    x1 = x - w * 0.5
+    y1 = y - h * 0.5
+    x2 = x + w * 0.5
+    y2 = y + h * 0.5
+    return x1, y1, x2, y2
+
+def naive_anchors(ratios=[0.33, 0.5, 1, 2, 3], scalers=[8], stride=8):
+    """
+    anchors corresponding to score map
+    """
+    anchor_nums = len(ratios) * len(scalers)
+    anchors_naive = np.zeros((anchor_nums, 4), dtype=np.float32)  # (5, 4)
+    size = stride * stride                                        # 64
+    count = 0
+    for r in ratios:
+        ws = int(math.sqrt(size*1. / r))
+        hs = int(ws * r)
+
+        for s in scalers:
+            w = ws * s
+            h = hs * s
+            anchors_naive[count][:] = [-w*0.5, -h*0.5, w*0.5, h*0.5][:]
+            count += 1
+    return anchors_naive
+
+def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
+    """
+
+    anchors corresponding to pairs
+    :param center: center of search image
+    :param feature_size: output score size after cross-correlation
+    :return: anchors not corresponding to ground truth
+    """
+    anchor_nums = anchors_naive.shape[0]
+    
+    a0x = center - feature_size // 2 * stride    # 255 // 2 - 17 // 2 * 8 = 63
+    ori = np.array([a0x] * 4, dtype=np.float32)     # [63, 63, 63, 63]
+    zero_anchors = anchors_naive + ori
+
+    x1 = zero_anchors[:, 0]
+    y1 = zero_anchors[:, 1]
+    x2 = zero_anchors[:, 2]
+    y2 = zero_anchors[:, 3]
+
+    x1, y1, x2, y2 = map(lambda x: x.reshape(anchor_nums, 1, 1), [x1, y1, x2, y2])
+    cx, cy, w, h = corner2center([x1, y1, x2, y2])
+
+    disp_x = np.arange(0, feature_size).reshape(1, 1, -1) * stride
+    disp_y = np.arange(0, feature_size).reshape(1, -1, 1) * stride
+
+    cx = cx + disp_x
+    cy = cy + disp_y
+
+    zero = np.zeros((anchor_nums, feature_size, feature_size), dtype=np.float32)
+    cx, cy, w, h = map(lambda x: x + zero, [cx, cy, w, h])
+    x1, y1, x2, y2 = center2corner([cx, cy, w, h])
+
+    center = np.stack([cx, cy, w, h]).transpose(2, 3, 1, 0)
+    corner = np.stack([x1, y1, x2, y2]).transpose(2, 3, 1, 0)
+
+    return center, corner
+
+def visualize_anchor(imsize, anchor):
+    """
+    Params:
+        imsize: {int}
+        anchor: {ndarray(n, 4)}
+    """
+    im = np.full((imsize, imsize, 3), 255, dtype=np.uint8)
+    for a in anchor:
+        x1, y1, x2, y2 = a
+        cv2.rectangle(im, (x1, y1), (x2, y2), (0, 0, 0), thickness=0)
+    cv2.imshow("", im)
+    cv2.waitKey(0)
 
 def intersect(box_a, box_b):
     """ We resize both tensors to [A,B,2] without new malloc:
