@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 19:25:52
+@LastEditTime: 2019-12-02 20:13:23
 @Update: 
 '''
 import sys
@@ -63,7 +63,7 @@ def train(configer):
 
         if use_cuda: cuda.empty_cache()
         scheduler.step(i_epoch)
-        writer.add_scalar('lr', scheduler.get_lr()[-1])
+        writer.add_scalar('lr', scheduler.get_lr()[-1], global_step=i_epoch)
 
         # -----------------------------------------------------
         net.train()
