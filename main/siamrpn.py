@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 17:04:05
+@LastEditTime: 2019-12-02 17:04:54
 @Update: 
 '''
 import sys
@@ -52,8 +52,7 @@ def train(configer):
     # optimize
     loss = RpnLoss(get_anchor(**configer.siamrpn.anchor),   **configer.siamrpn.loss)
     optimizer = optim.Adam(net.parameters(),                 **configer.siamrpn.optimizer)
-    scheduler = lr_scheduler.Exponent
-    ialLR(optimizer,       **configer.siamrpn.scheduler)
+    scheduler = lr_scheduler.ExponentialLR(optimizer,       **configer.siamrpn.scheduler)
 
     # train
     writer = SummaryWriter(params.log_dir)
