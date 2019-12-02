@@ -5,11 +5,13 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 14:20:42
+@LastEditTime: 2019-12-02 14:36:35
 @Update: 
 '''
 import sys
 sys.path.append('..')
+
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -56,6 +58,8 @@ def train(configer):
 
     # train
     writer = SummaryWriter(params.log_dir)
+
+    loss_total_val_best = np.inf
 
     for i_epoch in range(params.n_epoch):
 
@@ -107,6 +111,10 @@ def train(configer):
                 "loss_cls_avg": loss_cls_avg, 
                 "loss_reg_avg": loss_reg_avg, 
                 "acc_cls_avg":  acc_cls_avg}, global_step=i_epoch)
+
+        if loss_total_avg < loss_total_val_best:
+            loss_total_val_best = loss_total_avg
+            torch.save(net.state_dict(), params.ckpt)
 
     writer.close()
 
