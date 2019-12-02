@@ -82,6 +82,28 @@ def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
 
     return center, corner
 
+def get_anchor(stride=8, template_size=127, search_size=255, feature_size=17,
+            anchor_ratios=[0.33, 0.5, 1., 2., 3.], anchor_scales=[8]):
+    """
+    Params:
+        stride:        {int}
+        template_size: {int}
+        search_size:   {int}
+        feature_size:  {int}
+        anchor_ratios: {list[int]}
+        anchor_scales: {list[int]}
+    Returns:
+        center: {ndarray(A, 4)}
+        corner: {ndarray(A, 4)}
+    """
+    anchors_naive = naive_anchors(anchor_ratios, anchor_scales, stride)
+    center, corner = pair_anchors(
+                anchors_naive, search_size // 2, feature_size, stride)
+    center = center.reshape(4, -1).T
+    corner = corner.reshape(4, -1).T
+
+    return center, corner
+
 def visualize_anchor(imsize, anchor):
     """
     Params:

@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-01 14:15:53
+@LastEditTime: 2019-12-02 09:54:22
 @Update: 
 '''
 import sys
@@ -16,13 +16,15 @@ import numpy as np
 import torch
 from torch import nn
 
-from utils.box_utils import naive_anchors, pair_anchors, jaccard, visualize_anchor
+from utils.box_utils import get_anchor, jaccard, visualize_anchor
 
 class RpnLoss(nn.Module):
 
-    def __init__(self, cls_weight=1., reg_weight=1., 
-            stride=8, template_size=127, search_size=255, feature_size=17,
-            anchor_ratios=[0.33, 0.5, 1., 2., 3.], anchor_scales=[8], 
+    template_size=127
+    search_size=255 
+    feature_size=17
+
+    def __init__(self, anchors, cls_weight=1., reg_weight=1.,
             anchor_thr_low=0.3, anchor_thr_high=0.6, n_pos=16, n_neg_times=3.,
             vis_anchor=False):
         super(RpnLoss, self).__init__()
@@ -30,40 +32,20 @@ class RpnLoss(nn.Module):
         self.cls_weight = cls_weight
         self.reg_weight = reg_weight
         
-        self.stride = stride
-        self.template_size = template_size
-        self.search_size   = search_size
-        self.feature_size  = feature_size
-
-        self.anchor_ratios = anchor_ratios
-        self.anchor_scales = anchor_scales
         self.anchor_thr_low  = anchor_thr_low
         self.anchor_thr_high = anchor_thr_high
 
         self.n_pos = n_pos
         self.n_neg_times = n_neg_times
 
-        self._anchors(anchor_ratios, anchor_scales, stride, search_size, self.feature_size)
+        self.anchor_center, self.anchor_corner = list(
+                map(lambda x: torch.from_numpy(x.reshape(4, -1).T).contiguous(), anchors))
         
         if vis_anchor:
-            visualize_anchor(search_size, self.anchor_corner[10: 15])
+            visualize_anchor(self.search_size, self.anchor_corner[10: 15])
 
         self.bce = nn.BCELoss()
         self.smoothl1 = nn.SmoothL1Loss()
-
-    def _anchors(self, anchor_ratios, anchor_scales, stride, 
-                        search_size, feature_size):
-        """
-        Params:
-            feature_size: {int}
-            anchor_ratios: {list[int]}
-            anchor_scales: {list[int]}
-        """
-        anchors_naive = naive_anchors(anchor_ratios, anchor_scales, stride)
-        center, corner = pair_anchors(
-                    anchors_naive, search_size // 2, feature_size, stride)
-        self.anchor_center = torch.from_numpy(center.reshape(4, -1).T).contiguous()  # (feature_size * feature_size * num_anchor, 4) xc, yc,  w,  h
-        self.anchor_corner = torch.from_numpy(corner.reshape(4, -1).T).contiguous()  # (feature_size * feature_size * num_anchor, 4) x1, y1, x2, y2
 
     def _match(self, gt_bbox):
         """
@@ -159,7 +141,7 @@ class RpnLoss(nn.Module):
 
 # if __name__ == "__main__":
     
-#     loss = RpnLoss()
+#     loss = RpnLoss(get_anchor())
 
 #     n, a, h, w = 2, 5, 17, 17
 #     pred_cls, pred_reg = torch.sigmoid(torch.rand(n, a, h, w)), torch.rand(n, 4, a, h, w)

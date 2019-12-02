@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-01 20:04:30
+@LastEditTime: 2019-12-02 10:21:23
 @Update: 
 '''
 import sys
@@ -45,20 +45,23 @@ class VID2015PairData(Dataset):
 
     def __init__(self, mode='train', 
                 template_size=127, search_size=255, frame_range=30,
-                blur=0, color=1, flip=1, rotate=0):
+                blur=0, rotate=5, scale=0.05, color=1, flip=1):
 
         self.mode = mode
         self.template_size = template_size
         self.search_size   = search_size
         self.frame_range   = frame_range
         
-        self.blur  = blur
+        self.blur   = blur
+        self.rotate = rotate
+        self.scale  = scale
+        self.color  = color
+        self.flip   = flip
         
-        self.transform_extra = transforms.Compose(
+        self.transformer = transforms.Compose(
             [transforms.ToPILImage(), ] +
             ([transforms.ColorJitter(0.05, 0.05, 0.05, 0.05), ] if color > np.random.rand() else [])
             + ([transforms.RandomHorizontalFlip(), ] if flip > np.random.rand() else [])
-            + ([transforms.RandomRotation(degrees=rotate), ] if rotate > np.random.rand() else [])
         )
         
         self._list_samples()
@@ -176,10 +179,20 @@ class VID2015PairData(Dataset):
         Params:
             im: {ndarray()}
         """
-        # crop
         imh, imw = im.shape[:-1]
+        padval = im.mean(0).mean(0)
         xc, yc, w, h = corner2center(bbox)
         
+        # rotate & scale
+        rows, cols = im.shape[:-1]
+        rotate_rand = self.rotate * (np.random.rand() * 2. - 1)
+        scale_rand  = self.scale  * (np.random.rand() * 2. - 1) + 1
+        M = cv2.getRotationMatrix2D((xc, yc), rotate_rand, scale_rand)
+        im = cv2.warpAffine(im, M, (imw, imh), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
+
+        show_bbox(im, bbox, '[line193]')
+
+        # crop
         p = (w + h) / 2
         a = int(np.sqrt((w + p) * (h + p)) * (size // self.template_size))
         x1 = xc - a // 2; y1 = yc - a // 2
@@ -192,20 +205,20 @@ class VID2015PairData(Dataset):
                 [1, 0, xc_ - xc], 
                 [0, 1, yc_ - yc]
             ])
-        padval = im.mean(0).mean(0)
         im = cv2.warpAffine(im, M, (a, a), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
+        
+        # transform
+        im = np.array(self.transformer(im))
+        
+        # blur
+        if self.blur > np.random.rand():
+            im = gaussian_filter(im, sigma=(1, 1, 0))
 
         # resize
         im = cv2.resize(im, (size, size))
         s = a / size
         bbox /= s
-        
-        # blur
-        if self.blur > np.random.rand():
-            im = gaussian_filter(im, sigma=(1, 1, 0))
-        # extra
-        im = np.array(self.transform_extra(im))
-        
+
         return im, bbox
 
 if __name__ == '__main__':
