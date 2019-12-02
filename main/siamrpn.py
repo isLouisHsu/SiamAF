@@ -8,6 +8,7 @@
 @LastEditTime: 2019-12-02 21:12:52
 @Update: 
 '''
+import os
 import sys
 sys.path.append('..')
 
@@ -47,7 +48,7 @@ def train(configer):
 
     # model
     net = SiamRPN(**configer.siamrpn.net)
-    if params.resume is not None:
+    if params.resume is not None and os.path.exists(params.resume):
         state = torch.load(params.resume, map_location='cpu')
         net.load_state_dict(state)
     if use_cuda: net.to(device)
