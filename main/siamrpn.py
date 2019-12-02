@@ -70,7 +70,7 @@ def train(configer):
         for i_batch, batch in enumerate(trainloader):
 
             z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
-            if use_cuda: z = z.cuda(); x = x.cuda(); gt = gt.cuda
+            if use_cuda: z = z.cuda(); x = x.cuda(); gt = gt.cuda()
             pred_cls, pred_reg = net(z, x)
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
             optimizer.zero_grad(); loss_total_i.backward(); optimizer.step()
@@ -95,7 +95,7 @@ def train(configer):
             for i_batch, batch in enumerate(validloader):
 
                 z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
-                if use_cuda: z = z.cuda(); x = x.cuda(); gt = gt.cuda
+                if use_cuda: z = z.cuda(); x = x.cuda(); gt = gt.cuda()
                 pred_cls, pred_reg = net(z, x)
                 loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
 
