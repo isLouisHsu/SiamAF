@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 12:51:33
+@LastEditTime: 2019-12-02 14:20:42
 @Update: 
 '''
 import sys
@@ -88,15 +88,17 @@ def train(configer):
         # -----------------------------------------------------
         net.eval()
         loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg = [], [], [], []
-        for i_batch, batch in enumerate(validloader):
+        
+        with torch.no_grad:
+            for i_batch, batch in enumerate(validloader):
 
-            z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
-            pred_cls, pred_reg = net(z, x)
-            loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
+                z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
+                pred_cls, pred_reg = net(z, x)
+                loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
 
-            loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = list(
-                map(lambda x: x.detach().unsqueeze(0), [loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i]))
-            loss_total_avg += [loss_total_i]; loss_cls_avg   += [loss_cls_i  ]; loss_reg_avg   += [loss_reg_i  ]; acc_cls_avg    += [acc_cls_i   ]
+                loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = list(
+                    map(lambda x: x.detach().unsqueeze(0), [loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i]))
+                loss_total_avg += [loss_total_i]; loss_cls_avg   += [loss_cls_i  ]; loss_reg_avg   += [loss_reg_i  ]; acc_cls_avg    += [acc_cls_i   ]
 
         loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg = list(
             map(lambda x: torch.cat(x).mean(), [loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg]))
