@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 21:09:52
+@LastEditTime: 2019-12-02 21:12:52
 @Update: 
 '''
 import sys
@@ -47,6 +47,9 @@ def train(configer):
 
     # model
     net = SiamRPN(**configer.siamrpn.net)
+    if params.resume is not None:
+        state = torch.load(params.resume, map_location='cpu')
+        net.load_state_dict(state)
     if use_cuda: net.to(device)
     
     # optimize
