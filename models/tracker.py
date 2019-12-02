@@ -6,16 +6,16 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-01 12:57:13
+@LastEditTime: 2019-12-02 10:38:47
 @Update: 
 '''
 import torch
 from torch import nn
 
-from roi_align import RoIAlign
+# from roi_align import RoIAlign
 
-from backbone import AlexNet, resnet50
-from head import RpnHead, HeatmapHead
+from .backbone import AlexNet, resnet50
+from .head import RpnHead, HeatmapHead
 
 class SiamRPN(nn.Module):
     """

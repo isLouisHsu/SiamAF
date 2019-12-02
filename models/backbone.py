@@ -6,14 +6,14 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 15:20:57
-@LastEditTime: 2019-11-30 18:15:33
+@LastEditTime: 2019-12-02 10:38:54
 @Update: 
 '''
 import torch
 from torch import nn
 from torchvision import models
 
-from module import conv1x1, conv3x3, Bottleneck
+from .module import conv1x1, conv3x3, Bottleneck
 
 class AlexNet(nn.Module):
     configs = [3, 96, 256, 384, 384, 256]

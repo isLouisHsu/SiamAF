@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-02 10:21:23
+@LastEditTime: 2019-12-02 10:37:12
 @Update: 
 '''
 import sys
@@ -43,7 +43,7 @@ class VID2015PairData(Dataset):
     """
     PATH = '../data/ILSVRC2015_VID/ILSVRC2015/{subdir}/VID/{mode}'
 
-    def __init__(self, mode='train', 
+    def __init__(self, mode, 
                 template_size=127, search_size=255, frame_range=30,
                 blur=0, rotate=5, scale=0.05, color=1, flip=1):
 

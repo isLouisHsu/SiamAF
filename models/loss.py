@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-02 09:54:22
+@LastEditTime: 2019-12-02 10:53:51
 @Update: 
 '''
 import sys
@@ -24,7 +24,7 @@ class RpnLoss(nn.Module):
     search_size=255 
     feature_size=17
 
-    def __init__(self, anchors, cls_weight=1., reg_weight=1.,
+    def __init__(self, anchors, cls_weight=1., reg_weight=1., pos_thr=0.6,
             anchor_thr_low=0.3, anchor_thr_high=0.6, n_pos=16, n_neg_times=3.,
             vis_anchor=False):
         super(RpnLoss, self).__init__()
@@ -32,6 +32,7 @@ class RpnLoss(nn.Module):
         self.cls_weight = cls_weight
         self.reg_weight = reg_weight
         
+        self.pos_thr = pos_thr
         self.anchor_thr_low  = anchor_thr_low
         self.anchor_thr_high = anchor_thr_high
 
@@ -98,7 +99,7 @@ class RpnLoss(nn.Module):
         Returns:
             
         """
-        loss_cls = 0; loss_reg = 0
+        loss_cls = 0; loss_reg = 0; acc = 0
 
         matched = self._match(gt_bbox)     # (N, num_anchor, H， W)
         for i, (cls, reg, gt, mask) in enumerate(zip(pred_cls, pred_reg, gt_bbox, matched)):
@@ -125,6 +126,11 @@ class RpnLoss(nn.Module):
                         torch.cat([  cls_gt_pos,   cls_gt_neg]))
             loss_cls += loss_cls_i
 
+            # accuracy
+            cls_pred_pos = torch.masked_select(cls, mask == 1) >= self.pos_thr
+            cls_pred_neg = torch.masked_select(cls, mask != 1) <  self.pos_thr
+            acc += (cls_pred_pos.sum() + cls_pred_neg.sum()).double() / (cls_pred_pos.numel() + cls_pred_neg.numel())
+
             # regression
             index = torch.nonzero(mask == 1).squeeze()
             if index.size(0) == 0:
@@ -135,18 +141,19 @@ class RpnLoss(nn.Module):
                 reg_gt   = self._encode(gt, anchor)
                 loss_reg_i = self.smoothl1(reg_pred, reg_gt)
             loss_reg += loss_reg_i
-        
+
         loss_total = self.cls_weight * loss_cls + self.reg_weight * loss_reg
-        return loss_total, loss_cls, loss_reg
+        acc = acc / gt_bbox.size(0)
+        return loss_total, loss_cls, loss_reg, acc
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
     
-#     loss = RpnLoss(get_anchor())
+    loss = RpnLoss(get_anchor())
 
-#     n, a, h, w = 2, 5, 17, 17
-#     pred_cls, pred_reg = torch.sigmoid(torch.rand(n, a, h, w)), torch.rand(n, 4, a, h, w)
-#     gt_bbox = torch.tensor([
-#         [70., 111., 179., 143.],
-#         [75., 111., 181., 143.],
-#     ], dtype=torch.double)
-#     loss(pred_cls, pred_reg, gt_bbox)
+    n, a, h, w = 2, 5, 17, 17
+    pred_cls, pred_reg = torch.sigmoid(torch.rand(n, a, h, w)), torch.rand(n, 4, a, h, w)
+    gt_bbox = torch.tensor([
+        [70., 111., 179., 143.],
+        [75., 111., 181., 143.],
+    ], dtype=torch.double)
+    loss(pred_cls, pred_reg, gt_bbox)
