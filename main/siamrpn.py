@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 14:36:35
+@LastEditTime: 2019-12-02 15:07:42
 @Update: 
 '''
 import sys
@@ -30,9 +30,6 @@ from models.loss    import RpnLoss
 from utils.box_utils import get_anchor
 
 use_cuda = cuda.is_available() and configer.siamrpn.train.cuda
-
-if use_cuda:
-    Variable = lambda x: Variable(x).cuda()
 
 def train(configer):
     """
@@ -73,6 +70,7 @@ def train(configer):
         for i_batch, batch in enumerate(trainloader):
 
             z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
+            if use_cuda: z = z.cuda(); x = x.cuda(); gt = gt.cuda
             pred_cls, pred_reg = net(z, x)
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
             optimizer.zero_grad(); loss_total_i.backward(); optimizer.step()
@@ -97,6 +95,7 @@ def train(configer):
             for i_batch, batch in enumerate(validloader):
 
                 z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
+                if use_cuda: z = z.cuda(); x = x.cuda(); gt = gt.cuda
                 pred_cls, pred_reg = net(z, x)
                 loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
 
