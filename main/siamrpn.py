@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 16:19:58
+@LastEditTime: 2019-12-02 17:04:05
 @Update: 
 '''
 import sys
@@ -30,6 +30,7 @@ from models.loss    import RpnLoss
 from utils.box_utils import get_anchor
 
 use_cuda = cuda.is_available() and configer.siamrpn.train.cuda
+device = torch.device('cuda:0' if use_cuda else 'cpu')
 
 def train(configer):
     """
@@ -46,12 +47,13 @@ def train(configer):
 
     # model
     net = SiamRPN(**configer.siamrpn.net)
-    if use_cuda: net.cuda()
+    if use_cuda: net.to(device)
     
     # optimize
     loss = RpnLoss(get_anchor(**configer.siamrpn.anchor),   **configer.siamrpn.loss)
     optimizer = optim.Adam(net.parameters(),                 **configer.siamrpn.optimizer)
-    scheduler = lr_scheduler.ExponentialLR(optimizer,       **configer.siamrpn.scheduler)
+    scheduler = lr_scheduler.Exponent
+    ialLR(optimizer,       **configer.siamrpn.scheduler)
 
     # train
     writer = SummaryWriter(params.log_dir)
@@ -70,7 +72,7 @@ def train(configer):
         for i_batch, batch in enumerate(trainloader):
 
             z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
-            if use_cuda: z = z.cuda(); x = x.cuda(); gt = gt.cuda()
+            if use_cuda: z = z.to(device); x = x.to(device); gt = gt.to(device)
             pred_cls, pred_reg = net(z, x)
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
             optimizer.zero_grad(); loss_total_i.backward(); optimizer.step()
@@ -78,6 +80,13 @@ def train(configer):
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = list(
                 map(lambda x: x.detach().unsqueeze(0), [loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i]))
             loss_total_avg += [loss_total_i]; loss_cls_avg   += [loss_cls_i  ]; loss_reg_avg   += [loss_reg_i  ]; acc_cls_avg    += [acc_cls_i   ]
+
+
+            writer.add_scalars('training', {
+                    "loss_total_i":   loss_total_i, 
+                    "loss_cls_i": loss_cls_i, 
+                    "loss_reg_i": loss_reg_i, 
+                    "acc_cls_i":  acc_cls_i}, global_step=i_epoch * len(trainloader) + i_batch)
 
         loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg = list(
             map(lambda x: torch.cat(x).mean(), [loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg]))
@@ -95,7 +104,7 @@ def train(configer):
             for i_batch, batch in enumerate(validloader):
 
                 z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
-                if use_cuda: z = z.cuda(); x = x.cuda(); gt = gt.cuda()
+                if use_cuda: z = z.to(device); x = x.to(device); gt = gt.to(device)
                 pred_cls, pred_reg = net(z, x)
                 loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
 
