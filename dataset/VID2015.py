@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-02 12:15:51
+@LastEditTime: 2019-12-02 13:57:15
 @Update: 
 '''
 import sys
@@ -116,7 +116,7 @@ class VID2015PairData(Dataset):
 
         # ------------ to tensor ----------------
         template_image = torch.from_numpy(template_image.transpose(2, 0, 1) / 255.)
-        search_image   = torch.from_numpy(search_image.transpose(2, 0, 1) / 255.)
+        search_image   = torch.from_numpy(search_image.transpose(2, 0, 1)   / 255.)
         template_bbox  = torch.from_numpy(template_bbox)
         search_bbox    = torch.from_numpy(search_bbox)
 

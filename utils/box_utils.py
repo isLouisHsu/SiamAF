@@ -118,6 +118,50 @@ def visualize_anchor(im, anchor):
     cv2.imshow("", im)
     cv2.waitKey(0)
 
+def encode(location, anchor_center):
+    """
+    Params:
+        location:       {tensor(4), double} xc, yc,  w,  h
+        anchor_center:  {tensor(A, 4)}      xc, yc,  w,  h
+    Returns:
+        offset:         {tensor(A, 4), double} xc, yc,  w,  h
+    Notes:
+        oxc = (bxc - axc) / w
+        oyc = (byc - ayc) / h
+        ow = log (bw / aw)
+        oh = log (bh / ah)
+    """
+    offset = torch.zeros_like(anchor_center, dtype=torch.float)
+    
+    offset[:, 0] = (location[0] - anchor_center[:, 0]) / anchor_center[:, 2]
+    offset[:, 1] = (location[1] - anchor_center[:, 1]) / anchor_center[:, 3]
+    offset[:, 2] = torch.log(location[2] / anchor_center[:, 2])
+    offset[:, 3] = torch.log(location[3] / anchor_center[:, 3])
+
+    return offset
+
+def decode(offset, anchor_center):
+    """
+    Params:
+        offset:         {tensor(4), double} xc, yc,  w,  h
+        anchor_center:  {tensor(A, 4)}      xc, yc,  w,  h
+    Returns:
+        location:       {tensor(A, 4), double} xc, yc,  w,  h
+    Notes:
+        bxc = oxc * w + axc
+        byc = oyc * h + ayc
+        bw = exp(ow) * aw
+        bh = exp(oh) * ah
+    """
+    location = torch.zeros_like(anchor_center, dtype=torch.float)
+    
+    location[:, 0] = offset[0] * anchor_center[:, 2] + anchor_center[:, 0]
+    location[:, 1] = offset[1] * anchor_center[:, 3] + anchor_center[:, 1]
+    location[:, 2] = torch.exp(offset)[2] * anchor_center[:, 2]
+    location[:, 3] = torch.exp(offset)[3] * anchor_center[:, 3]
+
+    return location
+
 def intersect(box_a, box_b):
     """ We resize both tensors to [A,B,2] without new malloc:
     [A,2] -> [A,1,2] -> [A,B,2]

@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-02 13:01:51
+@LastEditTime: 2019-12-02 14:05:55
 @Update: 
 '''
 import sys
@@ -16,7 +16,7 @@ import numpy as np
 import torch
 from torch import nn
 
-from utils.box_utils import jaccard
+from utils.box_utils import jaccard, corner2center, encode
 
 class RpnLoss(nn.Module):
 
@@ -69,35 +69,6 @@ class RpnLoss(nn.Module):
 
         return matched
 
-    def _encode(self, gt_bbox, anchor_center):
-        """
-        Params:
-            gt_bbox:        {tensor(4), double} x1, y1, x2, y2
-            anchor_center:  {tensor(A, 4)}      xc, yc,  w,  h
-        Returns:
-            encoded:        {tensor(4), double} xc, yc,  w,  h
-        Notes:
-            x1e = (x1 - xc) / w
-            y1e = (y1 - yc) / h
-            x2e = (x1 - xc) / w
-            y2e = (y2 - yc) / h
-        """
-        encoded = torch.zeros_like(anchor_center, dtype=torch.float)
-        # encoded[:, 0] = (gt_bbox[0] - anchor_center[:, 0]) / anchor_center[:, 2]
-        # encoded[:, 1] = (gt_bbox[1] - anchor_center[:, 1]) / anchor_center[:, 3]
-        # encoded[:, 2] = (gt_bbox[2] - anchor_center[:, 0]) / anchor_center[:, 2]
-        # encoded[:, 3] = (gt_bbox[3] - anchor_center[:, 1]) / anchor_center[:, 3]
-        gt_x1, gt_y1, gt_x2, gt_y2 = gt_bbox
-        gt_xc = (gt_x1 + gt_y2) / 2.; gt_yc = (gt_y1 + gt_y2) / 2.
-        gt_w  = gt_x2 - gt_x1; gt_h = gt_y2 - gt_y1
-        encoded[:, 0] = (gt_xc - anchor_center[:, 0]) / anchor_center[:, 2]
-        encoded[:, 1] = (gt_yc - anchor_center[:, 1]) / anchor_center[:, 3]
-        encoded[:, 2] = torch.log(gt_w / anchor_center[:, 2])
-        encoded[:, 3] = torch.log(gt_h / anchor_center[:, 3])
-
-        return encoded
-
-
     def forward(self, pred_cls, pred_reg, gt_bbox):
         """
         Params:
@@ -146,8 +117,12 @@ class RpnLoss(nn.Module):
             index = torch.nonzero(mask == 1).squeeze()
             reg_pred = torch.index_select(   reg, 0, index)
             anchor   = torch.index_select(self.anchor_center.to(gt_bbox.device), 0, index) # xc, yc, w, h
-            reg_gt   = self._encode(gt, anchor)
-            loss_reg_i = self.mse(reg_pred, reg_gt)
+            if anchor.size(0) == 0:
+                loss_reg_i = torch.tensor(0.)
+            else:
+                gtc = torch.tensor(corner2center(gt))
+                reg_gt   = encode(gtc, anchor)
+                loss_reg_i = self.mse(reg_pred, reg_gt)
             loss_reg += loss_reg_i
 
         loss_cls, loss_reg, acc_cls = list(map(lambda x: x / gt_bbox.size(0), [loss_cls, loss_reg, acc_cls]))
