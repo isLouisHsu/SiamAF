@@ -83,7 +83,7 @@ def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
     return center, corner
 
 def get_anchor(stride=8, template_size=127, search_size=255, feature_size=17,
-            anchor_ratios=[0.33, 0.5, 1., 2., 3.], anchor_scales=[8]):
+            anchor_ratios=[0.33, 0.5, 1., 2., 3.], anchor_scales=[8], vis_anchor=False):
     """
     Params:
         stride:        {int}
@@ -99,20 +99,21 @@ def get_anchor(stride=8, template_size=127, search_size=255, feature_size=17,
     anchors_naive = naive_anchors(anchor_ratios, anchor_scales, stride)
     center, corner = pair_anchors(
                 anchors_naive, search_size // 2, feature_size, stride)
-    center = center.reshape(4, -1).T
-    corner = corner.reshape(4, -1).T
+
+    if vis_anchor:
+        visualize_anchor(np.full((search_size, search_size, 3), 255, dtype=np.uint8), 
+                corner[:, :, feature_size//2, feature_size//2].T)
 
     return center, corner
 
-def visualize_anchor(imsize, anchor):
+def visualize_anchor(im, anchor):
     """
     Params:
         imsize: {int}
         anchor: {ndarray(n, 4)}
     """
-    im = np.full((imsize, imsize, 3), 255, dtype=np.uint8)
     for a in anchor:
-        x1, y1, x2, y2 = a
+        x1, y1, x2, y2 = list(map(int, a))
         cv2.rectangle(im, (x1, y1), (x2, y2), (0, 0, 0), thickness=0)
     cv2.imshow("", im)
     cv2.waitKey(0)

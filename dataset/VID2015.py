@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-02 10:37:12
+@LastEditTime: 2019-12-02 12:15:51
 @Update: 
 '''
 import sys
@@ -26,6 +26,10 @@ from easydict import EasyDict as edict
 from utils.image_augmentation import *
 from utils.box_utils import corner2center, center2corner, show_bbox
 
+# from config import configer
+# from utils.box_utils import get_anchor, visualize_anchor
+# center, corner = get_anchor(**configer.siamrpn.anchor)
+
 class VID2015PairData(Dataset):
     """
     Params:
@@ -44,13 +48,14 @@ class VID2015PairData(Dataset):
     PATH = '../data/ILSVRC2015_VID/ILSVRC2015/{subdir}/VID/{mode}'
 
     def __init__(self, mode, 
-                template_size=127, search_size=255, frame_range=30,
+                template_size=127, search_size=255, frame_range=30, pad=[lambda w, h: (w + h) / 2],
                 blur=0, rotate=5, scale=0.05, color=1, flip=1):
 
         self.mode = mode
         self.template_size = template_size
         self.search_size   = search_size
         self.frame_range   = frame_range
+        self.pad = pad[0]
         
         self.blur   = blur
         self.rotate = rotate
@@ -105,8 +110,9 @@ class VID2015PairData(Dataset):
         template_image, template_bbox = self._augment_crop(template_image, template_bbox, self.template_size)
         search_image, search_bbox = self._augment_crop(search_image, search_bbox, self.search_size)
 
-        show_bbox(template_image, template_bbox, '[line102] template %d' % template_frame_index)
-        show_bbox(search_image, search_bbox, '[line103] search %d' % search_frame_index)
+        # show_bbox(template_image, template_bbox, '[line102] template %d' % template_frame_index)
+        # show_bbox(search_image, search_bbox, '[line103] search %d' % search_frame_index)
+        # visualize_anchor(search_image, corner[:, :, 8, 8].T)
 
         # ------------ to tensor ----------------
         template_image = torch.from_numpy(template_image.transpose(2, 0, 1) / 255.)
@@ -178,22 +184,28 @@ class VID2015PairData(Dataset):
         """
         Params:
             im: {ndarray()}
+            bbox: {}
+            size: {int}
         """
         imh, imw = im.shape[:-1]
         padval = im.mean(0).mean(0)
-        xc, yc, w, h = corner2center(bbox)
-        
+
         # rotate & scale
         rows, cols = im.shape[:-1]
         rotate_rand = self.rotate * (np.random.rand() * 2. - 1)
         scale_rand  = self.scale  * (np.random.rand() * 2. - 1) + 1
+
+        xc, yc, w, h = corner2center(bbox)
         M = cv2.getRotationMatrix2D((xc, yc), rotate_rand, scale_rand)
         im = cv2.warpAffine(im, M, (imw, imh), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
 
-        show_bbox(im, bbox, '[line193]')
+        bbox = np.array(center2corner(np.array([xc, yc, w * scale_rand, h * scale_rand])))
+        xc, yc, w, h = corner2center(bbox)
+
+        # show_bbox(im, bbox, '[line196]')
 
         # crop
-        p = (w + h) / 2
+        p = self.pad(w, h)
         a = int(np.sqrt((w + p) * (h + p)) * (size // self.template_size))
         x1 = xc - a // 2; y1 = yc - a // 2
         x2 = x1 + a; y2 = y1 + a
