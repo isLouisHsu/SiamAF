@@ -91,7 +91,7 @@ def train(configer):
         net.eval()
         loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg = [], [], [], []
         
-        with torch.no_grad:
+        with torch.no_grad():
             for i_batch, batch in enumerate(validloader):
 
                 z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
