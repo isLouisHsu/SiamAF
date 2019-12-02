@@ -41,7 +41,7 @@ class RpnLoss(nn.Module):
         self.anchor_center, self.anchor_corner = list(
                 map(lambda x: torch.from_numpy(x.reshape(4, -1).T).float().contiguous(), anchors))
         
-        self.bce = nn.BCELoss()
+        self.bce = nn.BCEWithLogitsLoss()
         self.mse = nn.MSELoss()
         self.smoothl1 = nn.SmoothL1Loss()
 

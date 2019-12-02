@@ -62,7 +62,7 @@ class RpnHead(nn.Module):
         cls_kernel = cls_kernel.view(-1, cls_feature.size(1), *cls_kernel.size()[2:])   # (N, out_channels * num_anchor,     Hz', Wz')
         reg_kernel = reg_kernel.view(-1, reg_feature.size(1), *reg_kernel.size()[2:])   # (N, out_channels * num_anchor * 4, Hz', Wz')
         
-        pred_cls = torch.sigmoid(self._conv(cls_feature, cls_kernel))   # (N, num_anchor, H, W)
+        pred_cls = self._conv(cls_feature, cls_kernel)                  # (N, num_anchor, H, W)
         pred_reg = self.adjust(self._conv(reg_feature, reg_kernel))     # (N, num_anchor * 4, H, W)
 
         size = [pred_cls.size(0), 4, *pred_cls.size()[1:]]
