@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 20:13:23
+@LastEditTime: 2019-12-02 21:09:52
 @Update: 
 '''
 import sys
@@ -74,12 +74,15 @@ def train(configer):
             if use_cuda: z = z.to(device); x = x.to(device); gt = gt.to(device)
             pred_cls, pred_reg = net(z, x)
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
-            optimizer.zero_grad(); loss_total_i.backward(); optimizer.step()
+
+            try:
+                optimizer.zero_grad(); loss_total_i.backward(); optimizer.step()
+            except:
+                pass
 
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = list(
                 map(lambda x: x.detach().unsqueeze(0), [loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i]))
             loss_total_avg += [loss_total_i]; loss_cls_avg   += [loss_cls_i  ]; loss_reg_avg   += [loss_reg_i  ]; acc_cls_avg    += [acc_cls_i   ]
-
 
             writer.add_scalars('training', {
                     "loss_total_i":   loss_total_i, 
