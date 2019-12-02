@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 17:04:54
+@LastEditTime: 2019-12-02 19:25:52
 @Update: 
 '''
 import sys
@@ -90,7 +90,7 @@ def train(configer):
         loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg = list(
             map(lambda x: torch.cat(x).mean(), [loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg]))
         writer.add_scalars('train', {
-                "loss_total":   loss_total_avg, 
+                "loss_total_avg":   loss_total_avg, 
                 "loss_cls_avg": loss_cls_avg, 
                 "loss_reg_avg": loss_reg_avg, 
                 "acc_cls_avg":  acc_cls_avg}, global_step=i_epoch)
@@ -114,7 +114,7 @@ def train(configer):
         loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg = list(
             map(lambda x: torch.cat(x).mean(), [loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg]))
         writer.add_scalars('valid', {
-                "loss_total":   loss_total_avg, 
+                "loss_total_avg":   loss_total_avg, 
                 "loss_cls_avg": loss_cls_avg, 
                 "loss_reg_avg": loss_reg_avg, 
                 "acc_cls_avg":  acc_cls_avg}, global_step=i_epoch)
