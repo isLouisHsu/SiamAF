@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-03 12:28:38
+@LastEditTime: 2019-12-03 12:30:24
 @Update: 
 '''
 import sys
@@ -103,18 +103,18 @@ class VID2015PairData(Dataset):
         search_bbox   = search_anno  [trackid]
         
         # ------------- read images -------------
-        template_image = cv2.imread(os.path.join(datapath, '{:06d}.JPEG'.format(template_frame_index)))
-        search_image   = cv2.imread(os.path.join(datapath, '{:06d}.JPEG'.format(search_frame_index  )))
+        template_image = cv2.imread(os.path.join(datapath, '{:06d}.JPEG'.format(template_idx)))
+        search_image   = cv2.imread(os.path.join(datapath, '{:06d}.JPEG'.format(search_idx  )))
 
-        # show_bbox(template_image, template_bbox, '[line95] template %d' % template_frame_index)
-        # show_bbox(search_image, search_bbox, '[line96] search %d' % search_frame_index)
+        # show_bbox(template_image, template_bbox, '[line95] template %d' % template_idx)
+        # show_bbox(search_image, search_bbox, '[line96] search %d' % search_idx)
 
         # --------- augmentation and crop -------
         template_image, template_bbox = self._augment_crop(template_image, template_bbox, self.template_size)
         search_image, search_bbox = self._augment_crop(search_image, search_bbox, self.search_size)
 
-        # show_bbox(template_image, template_bbox, '[line102] template %d' % template_frame_index)
-        # show_bbox(search_image, search_bbox, '[line103] search %d' % search_frame_index)
+        # show_bbox(template_image, template_bbox, '[line102] template %d' % template_idx)
+        # show_bbox(search_image, search_bbox, '[line103] search %d' % search_idx)
         # visualize_anchor(search_image, corner[:, :, 8, 8].T)
 
         # ------------ to tensor ----------------
