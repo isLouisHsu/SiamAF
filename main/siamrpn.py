@@ -85,7 +85,7 @@ def train(configer):
                 pass
 
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = list(
-                map(lambda x: x.detach().unsqueeze(0), [loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i]))
+                map(lambda x: x.cpu().detach().unsqueeze(0), [loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i]))
             loss_total_avg += [loss_total_i]; loss_cls_avg   += [loss_cls_i  ]; loss_reg_avg   += [loss_reg_i  ]; acc_cls_avg    += [acc_cls_i   ]
 
             writer.add_scalars('training', {
@@ -115,7 +115,7 @@ def train(configer):
                 loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
 
                 loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = list(
-                    map(lambda x: x.detach().unsqueeze(0), [loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i]))
+                    map(lambda x: x.cpu().detach().unsqueeze(0), [loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i]))
                 loss_total_avg += [loss_total_i]; loss_cls_avg   += [loss_cls_i  ]; loss_reg_avg   += [loss_reg_i  ]; acc_cls_avg    += [acc_cls_i   ]
 
         loss_total_avg, loss_cls_avg, loss_reg_avg, acc_cls_avg = list(
