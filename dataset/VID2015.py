@@ -72,6 +72,8 @@ class VID2015PairData(Dataset):
         self._list_samples()
         self.n_videos = len(self._video_folders)
 
+        print("Dataset [{}] loaded! Totally {} videos".format(mode, self.n_videos))
+
     def __getitem__(self, index):
 
         folder = self._video_folders[index]
@@ -151,10 +153,13 @@ class VID2015PairData(Dataset):
         if self.mode == 'train':
             for vol in os.listdir(path):
                 for vd in os.listdir(os.path.join(path, vol)):
-                    self._video_folders += [os.path.join(vol, vd)]
+                    volvd = os.path.join(vol, vd)
+                    if os.path.exists(os.path.join(path, volvd)):
+                        self._video_folders += [volvd]
         else:
             for vd in os.listdir(path):
-                self._video_folders += [vd]
+                if os.path.exists(os.path.join(path, vd)):
+                    self._video_folders += [vd]
 
     def _read_annotation_xml(self, xmlpath):
         """
