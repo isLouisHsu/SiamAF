@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-02 13:57:15
+@LastEditTime: 2019-12-03 12:28:38
 @Update: 
 '''
 import sys
@@ -81,21 +81,22 @@ class VID2015PairData(Dataset):
         annopath = os.path.join(self.PATH.format(subdir='Annotations', mode=self.mode), folder)
 
         # get a pair
-        n_frames = len(os.listdir(annopath))
-        done = False
-        while not done:
-            template_frame_index = np.random.randint(n_frames)
-            search_frame_index   = np.random.randint(
-                        max(template_frame_index - self.frame_range, 0), 
-                        min(template_frame_index + self.frame_range, n_frames - 1) + 1)
+        frames = os.listdir(annopath)
+        indexs = list(map(lambda x: int(x.split('.')[0]), frames))
 
-            # ----------- read annotation -----------
-            template_anno = self._read_annotation_xml(os.path.join(annopath, '{:06d}.xml'.format(template_frame_index)))
-            search_anno   = self._read_annotation_xml(os.path.join(annopath, '{:06d}.xml'.format(search_frame_index  )))
+        isdone = False
+        while not isdone:
+            template_idx = np.random.choice(indexs)
+            search_idxs = list(filter(
+                lambda x: x > template_idx - self.frame_range and \
+                        x < template_idx + self.frame_range + 1 and \
+                        x != template_idx, indexs))
+            search_idx = np.random.choice(search_idxs)
+            template_anno = self._read_annotation_xml(os.path.join(annopath, '{:06d}.xml'.format(template_idx)))
+            search_anno   = self._read_annotation_xml(os.path.join(annopath, '{:06d}.xml'.format(search_idx  )))
             common_id = [k for k in template_anno.keys() if k in search_anno.keys()]
-            if len(common_id)> 0:
-                done = True
-
+            if len(common_id)> 0: isdone = True
+            
         # randomly choose an object
         trackid = np.random.choice(common_id)
         template_bbox = template_anno[trackid]
@@ -153,13 +154,10 @@ class VID2015PairData(Dataset):
         if self.mode == 'train':
             for vol in os.listdir(path):
                 for vd in os.listdir(os.path.join(path, vol)):
-                    volvd = os.path.join(vol, vd)
-                    if os.path.exists(os.path.join(path, volvd)):
-                        self._video_folders += [volvd]
+                    self._video_folders += [os.path.join(vol, vd)]
         else:
             for vd in os.listdir(path):
-                if os.path.exists(os.path.join(path, vd)):
-                    self._video_folders += [vd]
+                self._video_folders += [vd]
 
     def _read_annotation_xml(self, xmlpath):
         """
