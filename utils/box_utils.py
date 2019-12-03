@@ -45,7 +45,45 @@ def naive_anchors(ratios=[0.33, 0.5, 1, 2, 3], scalers=[8], stride=8):
             count += 1
     return anchors_naive
 
-def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
+# def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
+#     """
+
+#     anchors corresponding to pairs
+#     :param center: center of search image
+#     :param feature_size: output score size after cross-correlation
+#     :return: anchors not corresponding to ground truth
+#     """
+#     anchor_nums = anchors_naive.shape[0]
+    
+#     a0x = center - feature_size // 2 * stride    # 255 // 2 - 17 // 2 * 8 = 63
+#     ori = np.array([a0x] * 4, dtype=np.float32)     # [63, 63, 63, 63]
+#     zero_anchors = anchors_naive + ori
+
+#     x1 = zero_anchors[:, 0]
+#     y1 = zero_anchors[:, 1]
+#     x2 = zero_anchors[:, 2]
+#     y2 = zero_anchors[:, 3]
+
+#     x1, y1, x2, y2 = map(lambda x: x.reshape(anchor_nums, 1, 1), [x1, y1, x2, y2])
+#     cx, cy, w, h = corner2center([x1, y1, x2, y2])
+
+#     disp_x = np.arange(0, feature_size).reshape(1, 1, -1) * stride
+#     disp_y = np.arange(0, feature_size).reshape(1, -1, 1) * stride
+
+#     cx = cx + disp_x
+#     cy = cy + disp_y
+
+#     zero = np.zeros((anchor_nums, feature_size, feature_size), dtype=np.float32)
+#     cx, cy, w, h = map(lambda x: x + zero, [cx, cy, w, h])
+#     x1, y1, x2, y2 = center2corner([cx, cy, w, h])
+
+#     center = np.stack([cx, cy, w, h])
+#     corner = np.stack([x1, y1, x2, y2])
+
+#     return center, corner
+
+def pair_anchors(anchors_naive, score_size=(17, 17), 
+        search_size=255, feature_size=17, stride=8):
     """
 
     anchors corresponding to pairs
@@ -55,7 +93,7 @@ def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
     """
     anchor_nums = anchors_naive.shape[0]
     
-    a0x = center - feature_size // 2 * stride    # 255 // 2 - 17 // 2 * 8 = 63
+    a0x = search_size // 2 - feature_size // 2 * stride    # 255 // 2 - 17 // 2 * 8 = 63
     ori = np.array([a0x] * 4, dtype=np.float32)     # [63, 63, 63, 63]
     zero_anchors = anchors_naive + ori
 
@@ -67,13 +105,13 @@ def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
     x1, y1, x2, y2 = map(lambda x: x.reshape(anchor_nums, 1, 1), [x1, y1, x2, y2])
     cx, cy, w, h = corner2center([x1, y1, x2, y2])
 
-    disp_x = np.arange(0, feature_size).reshape(1, 1, -1) * stride
-    disp_y = np.arange(0, feature_size).reshape(1, -1, 1) * stride
+    disp_x = np.arange(0, score_size[1]).reshape(1, 1, -1) * stride
+    disp_y = np.arange(0, score_size[0]).reshape(1, -1, 1) * stride
 
     cx = cx + disp_x
     cy = cy + disp_y
 
-    zero = np.zeros((anchor_nums, feature_size, feature_size), dtype=np.float32)
+    zero = np.zeros((anchor_nums, score_size[0], score_size[1]), dtype=np.float32)
     cx, cy, w, h = map(lambda x: x + zero, [cx, cy, w, h])
     x1, y1, x2, y2 = center2corner([cx, cy, w, h])
 
@@ -82,7 +120,8 @@ def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
 
     return center, corner
 
-def get_anchor(stride=8, template_size=127, search_size=255, feature_size=17,
+
+def get_anchor_train(stride=8, template_size=127, search_size=255, feature_size=17,
             anchor_ratios=[0.33, 0.5, 1., 2., 3.], anchor_scales=[8], vis_anchor=False):
     """
     Params:
@@ -98,7 +137,7 @@ def get_anchor(stride=8, template_size=127, search_size=255, feature_size=17,
     """
     anchors_naive = naive_anchors(anchor_ratios, anchor_scales, stride)
     center, corner = pair_anchors(
-                anchors_naive, search_size // 2, feature_size, stride)
+                anchors_naive, (feature_size, feature_size), search_size, feature_size, stride)
 
     if vis_anchor:
         visualize_anchor(np.full((search_size, search_size, 3), 255, dtype=np.uint8), 
@@ -285,3 +324,30 @@ def show_bbox(im, bbox, winname="", waitkey=0):
         cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
     cv2.imshow(winname, image)
     cv2.waitKey(waitkey)
+
+def crop_square_according_to_bbox(im, bbox, size=None, pad=None):
+    """
+    Params:
+        image: {ndarray(H, W, C)}
+        bbox:  {ndarray(4)}
+    Returns:
+        im: {ndarray(size, size, C)}
+    """
+    xc, yc, w, h = corner2center(bbox)
+    p = pad(w, h) if pad is not None else 0
+    a = int(np.sqrt((w + p) * (h + p)))
+    x1 = xc - a // 2; y1 = yc - a // 2; x2 = x1 + a; y2 = y1 + a
+
+    bbox[[0, 2]] -= x1; bbox[[1, 3]] -= y1
+    xc_, yc_, w_, h_ = corner2center(bbox)
+    
+    M = np.float32([
+            [1, 0, xc_ - xc], 
+            [0, 1, yc_ - yc]
+        ])
+
+    padval = im.mean(0).mean(0)
+    im = cv2.warpAffine(im, M, (a, a), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
+    im = cv2.resize(im, (size, size)) if size is not None else im
+    
+    return im

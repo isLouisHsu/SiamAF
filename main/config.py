@@ -5,28 +5,26 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-02 21:10:41
+@LastEditTime: 2019-12-03 21:08:03
 @Update: 
 '''
 from easydict import EasyDict as edict
 
 configer = edict()
 
-# ------------------ Dataset ------------------
-configer.vid = edict()
-
-configer.vid.template_size = 127
-configer.vid.search_size   = 255
-configer.vid.frame_range   = 30
-configer.vid.pad = lambda w, h: (w + h) / 2,
-configer.vid.blur=0
-configer.vid.rotate = 0
-configer.vid.scale  = 0.05
-configer.vid.color  = 1
-configer.vid.flip   = 1
-
 # ------------------ SiamRPN ------------------
 configer.siamrpn = edict()
+
+configer.siamrpn.vid = edict()
+configer.siamrpn.vid.template_size = 127
+configer.siamrpn.vid.search_size   = 255
+configer.siamrpn.vid.frame_range   = 30
+configer.siamrpn.vid.pad = lambda w, h: (w + h) / 2,
+configer.siamrpn.vid.blur=0
+configer.siamrpn.vid.rotate = 0
+configer.siamrpn.vid.scale  = 0.05
+configer.siamrpn.vid.color  = 1
+configer.siamrpn.vid.flip   = 1
 
 configer.siamrpn.anchor = edict()
 configer.siamrpn.anchor.stride = 8
@@ -62,7 +60,16 @@ configer.siamrpn.scheduler.gamma = 0.9
 configer.siamrpn.train = edict()
 configer.siamrpn.train.batch_size = 48
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
-configer.siamrpn.train.ckpt = '../logs/siamrpn/siamrpn.pkl'
+configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
 configer.siamrpn.train.n_epoch = 50
-configer.siamrpn.train.resume = '../logs/siamrpn/siamrpn.pkl'
+configer.siamrpn.train.resume = '../ckpt/siamrpn.pkl'
+
+configer.siamrpn.tracker = edict()
+configer.siamrpn.tracker.template_size = configer.siamrpn.anchor.template_size
+configer.siamrpn.tracker.search_size   = configer.siamrpn.anchor.search_size
+configer.siamrpn.tracker.feature_size  = configer.siamrpn.anchor.feature_size
+configer.siamrpn.anchor.stride         = configer.siamrpn.anchor.stride
+configer.siamrpn.tracker.pad           = configer.siamrpn.vid.pad
+configer.siamrpn.tracker.cls_thresh    = 0.9999
+configer.siamrpn.tracker.nms_thresh    = 0.6

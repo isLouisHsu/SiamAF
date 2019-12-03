@@ -6,139 +6,103 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-02 10:38:47
+@LastEditTime: 2019-12-03 21:03:40
 @Update: 
 '''
+import sys
+sys.path.append('..')
+
+import cv2
+import numpy as np
+
 import torch
-from torch import nn
 
-# from roi_align import RoIAlign
+from .network import SiamRPN
+from utils.box_utils import crop_square_according_to_bbox, pair_anchors, decode, nms
 
-from .backbone import AlexNet, resnet50
-from .head import RpnHead, HeatmapHead
+class SiamRPNTracker():
 
-class SiamRPN(nn.Module):
-    """
-    Attributes:
-        self.z_f: {tensor(1, 256, 6, 6)}
-    """
-    def __init__(self, out_channels=256, num_anchor=5):
-        super(SiamRPN, self).__init__()
+    def __init__(self, anchors_naive, net, device, 
+                template_size=127, search_size=255, feature_size=17, stride=8,
+                pad=[lambda w, h: (w + h) / 2],
+                cls_thresh=0.9999, nms_thresh=0.6):
 
-        self.backbone = AlexNet()
-        self.head = RpnHead(self.backbone.feature_size, out_channels, num_anchor)
+        self.anchors_naive = anchors_naive
+        self.num_anchor = self.anchors_naive.shape[0]
 
-        self.z_f = None     # for testing
+        self.device = device
+        self.net = net; self.net.to(device)
 
-    # -------------- for testing --------------
-    def template(self, z):
+        self.template_size = template_size
+        self.search_size   = search_size
+        self.feature_size  = feature_size
+        self.stride        = stride
+        self.pad = pad[0]
+
+        self.cls_thresh = cls_thresh
+        self.nms_thresh = nms_thresh
+
+        self.template_setted = False
+
+    def set_template(self, template_image, bbox):
         """
         Params:
-            z: {tensor(1, 3, 127, 127)}
+            template_image: {ndarray(H, W, C)}
+            bbox:           {ndarray(4)}
         """
-        self.z_f = self.backbone(z)
+        template_image = crop_square_according_to_bbox(template_image, bbox, self.template_size, self.pad)
+        template_image = self._ndarray2tensor(template_image)
+        self.net.template(template_image)
+        self.template_setted = True
 
-    def track(self, x):
+    def delete_template(self):
+
+        self.net.z_f = None
+        self.template_setted = False
+    
+    def track(self, search_image):
         """
         Params:
-            x: {tensor(1, 3, 255, 255)}
+            template_image: {ndarray(H, W, C)}
         Returns:
-            pred_cls: {tensor(N, n_anchor, 17, 17)}
-            pred_reg: {tensor(N, n_anchor, 17, 17)}
+            bbox: {ndarray(N, 4)}
         """
-        x_f = self.backbone(x)
-        pred_cls, pred_reg = self.head(self.z_f, x_f)
-        return pred_cls, pred_reg
-
-    # ------------- for training -------------
-    def forward(self, z, x):
-        """
-        Params:
-            z: {tensor(N, 3, 127, 127)}
-            x: {tensor(N, 3, 255, 255)}
-        Returns:
-            pred_cls: {tensor(N,    n_anchor, 17, 17)}
-            pred_reg: {tensor(N, 4, n_anchor, 17, 17)}
-        Notes:
-            - 255 // 17 = 15
-        """
-        z_f = self.backbone(z)
-        x_f = self.backbone(x)
-
-        pred_cls, pred_reg = self.head(z_f, x_f)
-        return pred_cls, pred_reg
-
-
-class SiamAF(nn.Module):
-    """ TODO:
-    Attributes:
-        self.z_f: {list[tensor(1, 256, h, w)]}
-    Notes:
-        - See more details about RoiAlign on https://github.com/longcw/RoIAlign.pytorch
-    """
-    def __init__(self, backbone=resnet50, roi_size=None):
-        super(SiamAF, self).__init__()
+        search_image = self._ndarray2tensor(search_image)
         
-        self.backbone = backbone
+        with torch.no_grad(): 
+            pred_cls, pred_reg = self.net.track(search_image)
+            pred_cls = torch.sigmoid(pred_cls.squeeze()); pred_reg = pred_reg.squeeze()
 
-        # head
-        self.head = nn.ModuleList()
-        for feature_size in self.backbone.feature_size:
-            self.head.append(HeatmapHead(feature_size))
+            # pair anchor for search_image
+            anchors_center, _ = pair_anchors(
+                self.anchors_naive, pred_cls.size()[1:], self.search_size, self.feature_size, self.stride)
+            anchors_center = torch.from_numpy(anchors_center).view(4, -1).t().float().to(self.device)   # (A, 4)
+
+            # filter `class score < thresh`
+            pred_cls = pred_cls.view(-1)        # (N)
+            pred_reg = pred_reg.view(4, -1).t() # (N, 4)
+            mask_cls = torch.nonzero(pred_cls > self.cls_thresh)
+            if mask_cls.size(0) == 0:
+                return np.full((0, 4), 0, dtype=np.float32)
+
+            mask_cls = mask_cls.squeeze()
+            anchors_center = torch.index_select(anchors_center, 0, mask_cls)
+            pred_cls       = torch.index_select(pred_cls, 0, mask_cls)
+            pred_reg       = torch.index_select(pred_reg, 0, mask_cls)
+
+            # refine
+            bbox       = torch.zeros_like(pred_reg)
+            bbox[:, 0] = pred_reg[:, 0] * anchors_center[:, 2] + anchors_center[:, 0]
+            bbox[:, 1] = pred_reg[:, 1] * anchors_center[:, 3] + anchors_center[:, 1]
+            bbox[:, 2] = torch.exp(pred_reg)[:, 2] * anchors_center[:, 2]
+            bbox[:, 3] = torch.exp(pred_reg)[:, 3] * anchors_center[:, 3]
+
+            # nms
+            keep, count = nms(bbox, pred_cls, self.nms_thresh)
+            bbox   = torch.index_select(bbox, 0, keep)
         
-        # roi
-        self.roi = None
-        if roi_size is not None:
-            self.roi = nn.ModuleList()
-            for rs in roi_size:
-                self.roi.append(RoIAlign(rs, rs))
-                
-        self.z_f = None     # for testing
+        bbox  = bbox.cpu().numpy()
+        return bbox
 
-    # -------------- for testing --------------
-    def template(self, z):
-        """
-        Params:
-            z: {tensor(1, 3, 127, 127)}
-        """
-        self.z_f = self.backbone(z)
-        if self.roi is not None:
-            for i, roi in enumerate(self.roi):
-                self.z_f[i] = roi(self.zf[i])
-
-    def track(self, x):
-        """
-        Params:
-            x: {tensor(1, 3, 255, 255)}
-        Returns:
-            pred_cls: {list[tensor(1, 1, h, w)]}
-            pred_reg: {list[tensor(1, 4, h, w)]}
-        """
-        x_f = self.backbone(x)
-        
-        pred_cls = []; pred_reg = []
-        for i, head in enumerate(self.head):
-            _cls, _reg = head(self.z_f[i], x_f[i])
-            pred_cls += [_cls]; pred_reg += [_cls]
-            
-        return pred_cls, pred_reg
-
-    # ------------- for training -------------
-    def forward(self, z, x):
-        """
-        Params:
-            z: {tensor(N, 3, 127, 127)}
-            x: {tensor(N, 3, 255, 255)}
-        Returns:
-            pred_cls: {tensor(N, n_anchor, h, w)}
-            pred_reg: {tensor(N, n_anchor, h, w)}
-        """
-        z_f = self.backbone(z)
-        if self.roi is not None:
-            for i, roi in enumerate(self.roi):
-                self.z_f[i] = roi(self.zf[i])
-
-        x_f = self.backbone(x)
-
-        pred_cls, pred_reg = self.head(z_f, x_f)
-        return pred_cls, pred_reg
+    def _ndarray2tensor(self, ndarray):
+        return torch.from_numpy(ndarray.transpose(2, 0, 1) / 255.).unsqueeze(0).float().to(self.device)

@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-02 21:12:52
+@LastEditTime: 2019-12-03 21:08:58
 @Update: 
 '''
 import os
@@ -25,10 +25,10 @@ from torch.utils.data import DataLoader
 from tensorboardX import SummaryWriter
 
 from config import configer
-from dataset.VID2015 import VID2015PairData
-from models.tracker import SiamRPN
+from dataset.VID2015 import VID2015PairData, VID2015SequenceData
+from models.network import SiamRPN
 from models.loss    import RpnLoss
-from utils.box_utils import get_anchor
+from utils.box_utils import get_anchor_train
 
 use_cuda = cuda.is_available() and configer.siamrpn.train.cuda
 device = torch.device('cuda:0' if use_cuda else 'cpu')
@@ -41,8 +41,8 @@ def train(configer):
     params = configer.siamrpn.train
 
     # datasets
-    trainset = VID2015PairData('train',                     **configer.vid)
-    validset = VID2015PairData('val',                       **configer.vid)
+    trainset = VID2015PairData('train',                     **configer.siamrpn.vid)
+    validset = VID2015PairData('val',                       **configer.siamrpn.vid)
     trainloader = DataLoader(trainset, params.batch_size, shuffle=True)
     validloader = DataLoader(validset, params.batch_size, shuffle=True)
 
@@ -51,11 +51,11 @@ def train(configer):
     if params.resume is not None and os.path.exists(params.resume):
         state = torch.load(params.resume, map_location='cpu')
         net.load_state_dict(state)
-    if use_cuda: net.to(device)
+    net.to(device)
     
     # optimize
-    loss = RpnLoss(get_anchor(**configer.siamrpn.anchor),   **configer.siamrpn.loss)
-    optimizer = optim.Adam(net.parameters(),                 **configer.siamrpn.optimizer)
+    loss = RpnLoss(get_anchor_train(**configer.siamrpn.anchor),   **configer.siamrpn.loss)
+    optimizer = optim.Adam(net.parameters(),                **configer.siamrpn.optimizer)
     scheduler = lr_scheduler.ExponentialLR(optimizer,       **configer.siamrpn.scheduler)
 
     # train
@@ -75,7 +75,7 @@ def train(configer):
         for i_batch, batch in enumerate(trainloader):
 
             z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
-            if use_cuda: z = z.to(device); x = x.to(device); gt = gt.to(device)
+            z = z.to(device); x = x.to(device); gt = gt.to(device)
             pred_cls, pred_reg = net(z, x)
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
 
@@ -110,7 +110,7 @@ def train(configer):
             for i_batch, batch in enumerate(validloader):
 
                 z, _, x, gt = list(map(lambda x: Variable(x).float(), batch))
-                if use_cuda: z = z.to(device); x = x.to(device); gt = gt.to(device)
+                z = z.to(device); x = x.to(device); gt = gt.to(device)
                 pred_cls, pred_reg = net(z, x)
                 loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
 
@@ -132,6 +132,48 @@ def train(configer):
 
     writer.close()
 
+# --------------------------------------------------------
+
+import cv2
+from models.tracker import SiamRPNTracker
+from utils.box_utils import naive_anchors, show_bbox
+
+def test(configer):
+
+    dataset = VID2015SequenceData('val', **configer.siamrpn.vid)
+
+    # initialize anchor
+    anchors_naive = naive_anchors(
+        configer.siamrpn.anchor.anchor_scales,
+        configer.siamrpn.anchor.anchor_ratios,
+        configer.siamrpn.anchor.stride
+        )
+
+    # initialize network
+    net = SiamRPN(**configer.siamrpn.net)
+    net.load_state_dict(
+        torch.load(configer.siamrpn.train.ckpt, map_location='cpu'))
+
+    tracker = SiamRPNTracker(anchors_naive=anchors_naive, net=net, device=device, **configer.siamrpn.tracker)
+
+    for i_data, (impaths, annos, ids) in enumerate(dataset):
+
+        for i_id, obj_id in enumerate(ids):
+            anno = list(map(lambda x: x[obj_id] if obj_id in x.keys() else None, annos))
+
+            for i_frame, (impath, bbox) in enumerate(zip(impaths, anno)):
+                
+                image = cv2.imread(impath, cv2.IMREAD_COLOR)
+                if bbox is not None and tracker.template_setted is False:
+                    tracker.set_template(image, bbox)
+                    continue
+
+                bbox = tracker.track(image)
+                show_bbox(image.copy(), bbox)
+            
+            tracker.clear_template()
+
 if __name__ == '__main__':
 
     train(configer)
+    # test(configer)

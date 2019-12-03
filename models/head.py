@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 15:28:34
-@LastEditTime: 2019-12-01 12:59:23
+@LastEditTime: 2019-12-03 18:00:58
 @Update: 
 '''
 import torch
@@ -20,6 +20,8 @@ class RpnHead(nn.Module):
     def __init__(self, in_channels, out_channels=256, num_anchor=5):
         super(RpnHead, self).__init__()
     
+        self.out_channels = out_channels
+        
         self.template_cls = nn.Conv2d(in_channels, out_channels * num_anchor,     kernel_size=3)
         self.template_reg = nn.Conv2d(in_channels, out_channels * num_anchor * 4, kernel_size=3)
 

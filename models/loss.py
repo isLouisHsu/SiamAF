@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-02 14:05:55
+@LastEditTime: 2019-12-03 20:41:14
 @Update: 
 '''
 import sys
@@ -131,7 +131,7 @@ class RpnLoss(nn.Module):
 
 if __name__ == "__main__":
     
-    loss = RpnLoss(get_anchor())
+    loss = RpnLoss(get_anchor_train())
 
     n, a, h, w = 2, 5, 17, 17
     pred_cls, pred_reg = torch.sigmoid(torch.rand(n, a, h, w)), torch.rand(n, 4, a, h, w)

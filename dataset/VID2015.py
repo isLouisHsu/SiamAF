@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-03 12:30:24
+@LastEditTime: 2019-12-03 20:41:25
 @Update: 
 '''
 import sys
@@ -27,8 +27,8 @@ from utils.image_augmentation import *
 from utils.box_utils import corner2center, center2corner, show_bbox
 
 # from config import configer
-# from utils.box_utils import get_anchor, visualize_anchor
-# center, corner = get_anchor(**configer.siamrpn.anchor)
+# from utils.box_utils import get_anchor_train, visualize_anchor
+# center, corner = get_anchor_train(**configer.siamrpn.anchor)
 
 class VID2015PairData(Dataset):
     """
@@ -111,7 +111,7 @@ class VID2015PairData(Dataset):
 
         # --------- augmentation and crop -------
         template_image, template_bbox = self._augment_crop(template_image, template_bbox, self.template_size)
-        search_image, search_bbox = self._augment_crop(search_image, search_bbox, self.search_size)
+        search_image,   search_bbox   = self._augment_crop(search_image,   search_bbox,   self.search_size)
 
         # show_bbox(template_image, template_bbox, '[line102] template %d' % template_idx)
         # show_bbox(search_image, search_bbox, '[line103] search %d' % search_idx)
@@ -164,9 +164,7 @@ class VID2015PairData(Dataset):
         Params:
             xmlpath: {str} path
         Returns:
-            filename: {str} e.g. 2008_003523.jpg
-            objects:  {dict{str: list[int, int, int, int]}} 
-                    e.g. {'pottedplant': [218, 235, 375, 500], ...}
+            annotations: {ndarray(4)}
         """
         annotations = dict()
 
@@ -186,8 +184,8 @@ class VID2015PairData(Dataset):
     def _augment_crop(self, im, bbox, size):
         """
         Params:
-            im: {ndarray()}
-            bbox: {}
+            im:   {ndarray(H, W, C)}
+            bbox: {ndarray(4)}
             size: {int}
         """
         imh, imw = im.shape[:-1]
@@ -210,8 +208,7 @@ class VID2015PairData(Dataset):
         # crop
         p = self.pad(w, h)
         a = int(np.sqrt((w + p) * (h + p)) * (size // self.template_size))
-        x1 = xc - a // 2; y1 = yc - a // 2
-        x2 = x1 + a; y2 = y1 + a
+        x1 = xc - a // 2; y1 = yc - a // 2; x2 = x1 + a; y2 = y1 + a
 
         bbox[[0, 2]] -= x1; bbox[[1, 3]] -= y1
         xc_, yc_, w_, h_ = corner2center(bbox)
@@ -236,16 +233,50 @@ class VID2015PairData(Dataset):
 
         return im, bbox
 
+class VID2015SequenceData(VID2015PairData):
+    
+    def __init__(self, mode, **kwargs):
+        super(VID2015SequenceData, self).__init__(mode, **kwargs)
+
+        self._list_samples()
+
+    def __getitem__(self, index):
+        """
+        Returns:
+            impaths: {list[str]}
+            annos:   {list(dict{obj_id: ndarray(4)})}
+        """
+
+        folder = self._video_folders[index]
+        datapath = os.path.join(self.PATH.format(subdir='Data',        mode=self.mode), folder)
+        annopath = os.path.join(self.PATH.format(subdir='Annotations', mode=self.mode), folder)
+
+        frames = os.listdir(annopath)
+        frames = sorted(frames, key=lambda x: int(x.split('.')[0]))
+
+        impaths = []; annos = []
+        for i_frame, frame in enumerate(frames):
+            
+            datapath_i = os.path.join(datapath, '{:06d}.JPEG'.format(int(frame.split('.')[0])))
+            annopath_i = os.path.join(annopath, frame)
+            impaths += [datapath_i]; annos += [self._read_annotation_xml(annopath_i)]
+
+        ids = list(np.unique(list(map(lambda x: list(x.keys()), annos))))
+
+        return impaths, annos, ids
+        
 if __name__ == '__main__':
 
-    dataset = VID2015PairData('train')
-    dataset = VID2015PairData('val')
+    pass
 
+    # dataset = VID2015PairData('train')
+    # dataset = VID2015PairData('val')
     # for i in range(len(dataset)):
     #     dataset.vis(i)
-
-    for i, (template, template_bbox, search, search_bbox) in enumerate(dataset):
-
-        pass
-            
+    # for i, (template, template_bbox, search, search_bbox) in enumerate(dataset):
+    #     pass
+    
+    # dataset = VID2015SequenceData('val')
+    # for i, data in enumerate(dataset):
+    #     pass
 
