@@ -55,7 +55,7 @@ configer.siamrpn.optimizer.lr = 0.001
 configer.siamrpn.optimizer.weight_decay = 5e-4
 
 configer.siamrpn.scheduler = edict()
-configer.siamrpn.scheduler.gamma = 0.9
+configer.siamrpn.scheduler.gamma = 0.95
 
 configer.siamrpn.train = edict()
 configer.siamrpn.train.batch_size = 48
