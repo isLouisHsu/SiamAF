@@ -1,0 +1,3 @@
+[submodule "submodule/RoIAlign.pytorch"]
+	path = submodule/RoIAlign.pytorch
+	url = https://github.com/isLouisHsu/RoIAlign.pytorch.git
