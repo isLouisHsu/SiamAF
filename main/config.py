@@ -43,7 +43,7 @@ configer.siamrpn.net.num_anchor   = \
 
 configer.siamrpn.loss = edict()
 configer.siamrpn.loss.cls_weight = 1.0
-configer.siamrpn.loss.reg_weight = 0.1
+configer.siamrpn.loss.reg_weight = 0.5
 configer.siamrpn.loss.pos_thr    = 0.6
 configer.siamrpn.loss.anchor_thr_low  = 0.3
 configer.siamrpn.loss.anchor_thr_high = 0.6
