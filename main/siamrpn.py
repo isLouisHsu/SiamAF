@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-03 21:08:58
+@LastEditTime: 2019-12-04 18:08:57
 @Update: 
 '''
 import os
@@ -169,11 +169,11 @@ def test(configer):
                     continue
 
                 bbox = tracker.track(image)
-                show_bbox(image.copy(), bbox)
+                show_bbox(image.copy(), bbox, waitkey=500)
             
             tracker.clear_template()
 
 if __name__ == '__main__':
 
     train(configer)
-    # test(configer)
+    test(configer)

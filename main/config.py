@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-03 21:08:03
+@LastEditTime: 2019-12-04 18:07:24
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -71,5 +71,5 @@ configer.siamrpn.tracker.search_size   = configer.siamrpn.anchor.search_size
 configer.siamrpn.tracker.feature_size  = configer.siamrpn.anchor.feature_size
 configer.siamrpn.anchor.stride         = configer.siamrpn.anchor.stride
 configer.siamrpn.tracker.pad           = configer.siamrpn.vid.pad
-configer.siamrpn.tracker.cls_thresh    = 0.9999
+configer.siamrpn.tracker.cls_thresh    = 0.95
 configer.siamrpn.tracker.nms_thresh    = 0.6

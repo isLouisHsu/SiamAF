@@ -321,7 +321,7 @@ def show_bbox(im, bbox, winname="", waitkey=0):
     image = im.copy()
     bbox = bbox.reshape(-1, 4).astype(np.int)
     for x1, y1, x2, y2 in bbox:
-        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 2)
+        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 1)
     cv2.imshow(winname, image)
     cv2.waitKey(waitkey)
 
