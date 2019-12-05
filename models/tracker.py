@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-03 21:03:40
+@LastEditTime: 2019-12-05 11:40:41
 @Update: 
 '''
 import sys
@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 from .network import SiamRPN
-from utils.box_utils import crop_square_according_to_bbox, pair_anchors, decode, nms
+from utils.box_utils import crop_square_according_to_bbox, pair_anchors, decode, center2corner, nms
 
 class SiamRPNTracker():
 
@@ -44,13 +44,15 @@ class SiamRPNTracker():
 
         self.template_setted = False
 
-    def set_template(self, template_image, bbox):
+    def set_template(self, template_image, bbox=None):
         """
         Params:
             template_image: {ndarray(H, W, C)}
             bbox:           {ndarray(4)}
         """
-        template_image = crop_square_according_to_bbox(template_image, bbox, self.template_size, self.pad)
+        if bbox is not None:
+            template_image = crop_square_according_to_bbox(template_image, bbox, self.template_size, self.pad)
+        # cv2.imshow("template_image", template_image); cv2.waitKey(0)
         template_image = self._ndarray2tensor(template_image)
         self.net.template(template_image)
         self.template_setted = True
@@ -67,6 +69,7 @@ class SiamRPNTracker():
         Returns:
             bbox: {ndarray(N, 4)}
         """
+        # cv2.imshow("search_image", search_image); cv2.waitKey(0)
         search_image = self._ndarray2tensor(search_image)
         
         with torch.no_grad(): 
@@ -83,7 +86,7 @@ class SiamRPNTracker():
             pred_reg = pred_reg.view(4, -1).t() # (N, 4)
             mask_cls = torch.nonzero(pred_cls > self.cls_thresh)
             if mask_cls.size(0) == 0:
-                return np.full((0, 4), 0, dtype=np.float32)
+                return np.full((0, 4), 0, dtype=np.float32), np.full(0, 0, dtype=np.float32)
 
             mask_cls = mask_cls.squeeze()
             anchors_center = torch.index_select(anchors_center, 0, mask_cls)
@@ -91,18 +94,23 @@ class SiamRPNTracker():
             pred_reg       = torch.index_select(pred_reg, 0, mask_cls)
 
             # refine
-            bbox       = torch.zeros_like(pred_reg)
-            bbox[:, 0] = pred_reg[:, 0] * anchors_center[:, 2] + anchors_center[:, 0]
-            bbox[:, 1] = pred_reg[:, 1] * anchors_center[:, 3] + anchors_center[:, 1]
-            bbox[:, 2] = torch.exp(pred_reg)[:, 2] * anchors_center[:, 2]
-            bbox[:, 3] = torch.exp(pred_reg)[:, 3] * anchors_center[:, 3]
+            bbox_center       = torch.zeros_like(pred_reg)
+            bbox_center[:, 0] = pred_reg[:, 0] * anchors_center[:, 2] + anchors_center[:, 0]
+            bbox_center[:, 1] = pred_reg[:, 1] * anchors_center[:, 3] + anchors_center[:, 1]
+            bbox_center[:, 2] = torch.exp(pred_reg[:, 2]) * anchors_center[:, 2]
+            bbox_center[:, 3] = torch.exp(pred_reg[:, 3]) * anchors_center[:, 3]
+
+            M = torch.tensor([[ 1  ,  0  , 1  ,  0  ],[ 0  ,  1  , 0  ,  1  ],[-0.5,  0  , 0.5,  0  ],[ 0  , -0.5, 0  ,  0.5]], dtype=torch.float32, device=self.device)
+            bbox_corner = torch.mm(bbox_center, M)
 
             # nms
-            keep, count = nms(bbox, pred_cls, self.nms_thresh)
-            bbox   = torch.index_select(bbox, 0, keep)
+            keep, count = nms(bbox_corner, pred_cls, self.nms_thresh)
+            bbox   = torch.index_select(bbox_corner, 0, keep[:count])
+            score  = torch.index_select(pred_cls,    0, keep[:count])
         
-        bbox  = bbox.cpu().numpy()
-        return bbox
+        bbox  = bbox.cpu().numpy(); score = score.cpu().numpy()
+        print(bbox); print(score)
+        return bbox, score
 
     def _ndarray2tensor(self, ndarray):
         return torch.from_numpy(ndarray.transpose(2, 0, 1) / 255.).unsqueeze(0).float().to(self.device)

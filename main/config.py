@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-04 18:07:24
+@LastEditTime: 2019-12-05 11:39:37
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -18,9 +18,9 @@ configer.siamrpn = edict()
 configer.siamrpn.vid = edict()
 configer.siamrpn.vid.template_size = 127
 configer.siamrpn.vid.search_size   = 255
-configer.siamrpn.vid.frame_range   = 30
+configer.siamrpn.vid.frame_range   = 20
 configer.siamrpn.vid.pad = lambda w, h: (w + h) / 2,
-configer.siamrpn.vid.blur=0
+configer.siamrpn.vid.blur= 1
 configer.siamrpn.vid.rotate = 0
 configer.siamrpn.vid.scale  = 0.05
 configer.siamrpn.vid.color  = 1
@@ -43,27 +43,27 @@ configer.siamrpn.net.num_anchor   = \
 
 configer.siamrpn.loss = edict()
 configer.siamrpn.loss.cls_weight = 1.0
-configer.siamrpn.loss.reg_weight = 0.5
-configer.siamrpn.loss.pos_thr    = 0.6
+configer.siamrpn.loss.reg_weight = 1.0
+configer.siamrpn.loss.pos_thr    = 0.65
 configer.siamrpn.loss.anchor_thr_low  = 0.3
 configer.siamrpn.loss.anchor_thr_high = 0.6
 configer.siamrpn.loss.n_pos = 16
 configer.siamrpn.loss.n_neg = 48
 
 configer.siamrpn.optimizer = edict()
-configer.siamrpn.optimizer.lr = 0.001
+configer.siamrpn.optimizer.lr = 0.0005
 configer.siamrpn.optimizer.weight_decay = 5e-4
 
 configer.siamrpn.scheduler = edict()
 configer.siamrpn.scheduler.gamma = 0.95
 
 configer.siamrpn.train = edict()
-configer.siamrpn.train.batch_size = 48
+configer.siamrpn.train.batch_size = 64
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
-configer.siamrpn.train.n_epoch = 50
-configer.siamrpn.train.resume = '../ckpt/siamrpn.pkl'
+configer.siamrpn.train.n_epoch = 75
+configer.siamrpn.train.resume = None
 
 configer.siamrpn.tracker = edict()
 configer.siamrpn.tracker.template_size = configer.siamrpn.anchor.template_size
@@ -71,5 +71,5 @@ configer.siamrpn.tracker.search_size   = configer.siamrpn.anchor.search_size
 configer.siamrpn.tracker.feature_size  = configer.siamrpn.anchor.feature_size
 configer.siamrpn.anchor.stride         = configer.siamrpn.anchor.stride
 configer.siamrpn.tracker.pad           = configer.siamrpn.vid.pad
-configer.siamrpn.tracker.cls_thresh    = 0.95
-configer.siamrpn.tracker.nms_thresh    = 0.6
+configer.siamrpn.tracker.cls_thresh    = 0.9
+configer.siamrpn.tracker.nms_thresh    = 0.4
