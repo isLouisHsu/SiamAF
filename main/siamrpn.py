@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-05 11:47:32
+@LastEditTime: 2019-12-05 11:48:29
 @Update: 
 '''
 import os
@@ -55,8 +55,8 @@ def train(configer):
     
     # optimize
     loss = RpnLoss(get_anchor_train(**configer.siamrpn.anchor),   **configer.siamrpn.loss)
-    scheduler = lr_scheduler.ExponentialLR(optimizer,       **configer.siamrpn.scheduler)
     optimizer = optim.Adam(net.parameters(),                **configer.siamrpn.optimizer)
+    scheduler = lr_scheduler.ExponentialLR(optimizer,       **configer.siamrpn.scheduler)
 
     # train
     writer = SummaryWriter(params.log_dir)
@@ -66,7 +66,6 @@ def train(configer):
     for i_epoch in range(params.n_epoch):
 
         if use_cuda: cuda.empty_cache()
-        scheduler.step(i_epoch)
         writer.add_scalar('lr', scheduler.get_lr()[-1], global_step=i_epoch)
 
         # -----------------------------------------------------
@@ -129,6 +128,8 @@ def train(configer):
         if loss_total_avg < loss_total_val_best:
             loss_total_val_best = loss_total_avg
             torch.save(net.state_dict(), params.ckpt)
+        
+        scheduler.step(i_epoch)
 
     writer.close()
 
