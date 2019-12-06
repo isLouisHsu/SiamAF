@@ -312,20 +312,28 @@ def nms(boxes, scores, overlap=0.5, top_k=200):
         idx = idx[IoU.le(overlap)]
     return keep, count
 
-def show_bbox(im, bbox, winname="", waitkey=0):
+def show_bbox(im, bbox, score=None, points=None, winname="", waitkey=0):
     """
     Params:
         im: {ndarray(H, W, 3)}
         bbox: {ndarray(N, 4)} x1, y1, x2, y2
+        score:  {ndarray(N)}
+        points: {ndarray(M, 2)}
     """
     image = im.copy()
     bbox = bbox.reshape(-1, 4).astype(np.int)
     for x1, y1, x2, y2 in bbox:
         cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 1)
+    if score is not None:
+        pass
+    if points is not None:
+        points = points.reshape(-1, 2).astype(np.int)
+        for x, y in points:
+            cv2.circle(image, (x, y), 2, (0, 255, 255), 3)
     cv2.imshow(winname, image)
     cv2.waitKey(waitkey)
 
-def crop_square_according_to_bbox(im, bbox, size=None, pad=None):
+def crop_square_according_to_bbox(im, bbox, size=None, pad=None, return_param=False):
     """
     Params:
         image: {ndarray(H, W, C)}
@@ -338,8 +346,9 @@ def crop_square_according_to_bbox(im, bbox, size=None, pad=None):
     a = int(np.sqrt((w + p) * (h + p)))
     x1 = xc - a // 2; y1 = yc - a // 2; x2 = x1 + a; y2 = y1 + a
 
-    bbox[[0, 2]] -= x1; bbox[[1, 3]] -= y1
-    xc_, yc_, w_, h_ = corner2center(bbox)
+    bbox_shift = bbox.copy()
+    bbox_shift[[0, 2]] -= x1; bbox_shift[[1, 3]] -= y1
+    xc_, yc_, w_, h_ = corner2center(bbox_shift)
     
     M = np.float32([
             [1, 0, xc_ - xc], 
@@ -349,5 +358,21 @@ def crop_square_according_to_bbox(im, bbox, size=None, pad=None):
     padval = im.mean(0).mean(0)
     im = cv2.warpAffine(im, M, (a, a), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
     im = cv2.resize(im, (size, size)) if size is not None else im
+
     
-    return im
+    if return_param:
+        scale = size / a; shift = np.array([x1, y1])
+        return im, (scale, shift)
+    else:
+        return im
+
+def get_hamming_window(size, num_anchor):
+    """
+    Params:
+        size: {int}
+        num_anchor: {int}
+    """
+    win = np.hamming(size)
+    win = np.outer(win, win)
+    win = np.stack([win] * num_anchor, axis=0)
+    return win

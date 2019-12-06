@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-06 11:26:52
+@LastEditTime: 2019-12-06 21:14:49
 @Update: 
 '''
 import os
@@ -169,45 +169,13 @@ def testSequence(configer):
                     tracker.set_template(image, bbox)
                     continue
 
+                show_bbox(image, bbox, waitkey=0, winname='gt')
                 bbox, _ = tracker.track(image)
-                show_bbox(image.copy(), bbox, waitkey=0)
+                show_bbox(image, bbox, waitkey=0, winname='pred')
             
             tracker.delete_template()
-
-def testPair(configer):
-
-    dataset = VID2015PairData    ('val', **configer.siamrpn.vid)
-
-    # initialize anchor
-    anchors_naive = naive_anchors(
-        configer.siamrpn.anchor.anchor_ratios,
-        configer.siamrpn.anchor.anchor_scales,
-        configer.siamrpn.anchor.stride
-        )
-
-    # initialize network
-    net = SiamRPN(**configer.siamrpn.net)
-    net.load_state_dict(
-        torch.load(configer.siamrpn.train.ckpt, map_location='cpu'))
-
-    tracker = SiamRPNTracker(anchors_naive=anchors_naive, net=net, device=device, **configer.siamrpn.tracker)
-
-    for i_data, (template_image, template_bbox, search_image, search_bbox) in enumerate(dataset):
-        
-        template_image = template_image.numpy().transpose(1, 2, 0)
-        search_image   = search_image.numpy().transpose(1, 2, 0)
-
-        tracker.set_template(template_image)
-
-        bbox, _ = tracker.track(search_image)
-        cv2.imshow("template_image", template_image)
-        cv2.imshow("search_image", search_image)
-        show_bbox(search_image.copy(), bbox, waitkey=0)
-            
-        tracker.delete_template()
 
 if __name__ == '__main__':
 
     train(configer)
     # testSequence(configer)
-    # testPair(configer)

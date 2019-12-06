@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-06 10:40:19
+@LastEditTime: 2019-12-06 21:14:05
 @Update: 
 '''
 import sys
@@ -14,18 +14,24 @@ sys.path.append('..')
 
 import cv2
 import numpy as np
+from easydict import EasyDict as edict
 
 import torch
 
 from .network import SiamRPN
-from utils.box_utils import crop_square_according_to_bbox, pair_anchors, decode, center2corner, nms, visualize_anchor
+from utils.box_utils import (
+    crop_square_according_to_bbox, 
+    pair_anchors, get_hamming_window,
+    center2corner, corner2center, 
+    nms, 
+    visualize_anchor, show_bbox)
 
 class SiamRPNTracker():
 
     def __init__(self, anchors_naive, net, device, 
-                template_size=127, search_size=255, feature_size=17, stride=8,
-                pad=[lambda w, h: (w + h) / 2],
-                cls_thresh=0.9999, nms_thresh=0.6):
+                template_size=127, search_size=255, feature_size=17, center_size=7,
+                stride=8, pad=[lambda w, h: (w + h) / 2],
+                penalty_k=1.0, window_factor=0.42, momentum=0.295):
 
         self.anchors_naive = anchors_naive
         self.num_anchor = self.anchors_naive.shape[0]
@@ -36,21 +42,29 @@ class SiamRPNTracker():
         self.template_size = template_size
         self.search_size   = search_size
         self.feature_size  = feature_size
+        self.center_size   = center_size
         self.stride        = stride
         self.pad = pad[0]
 
-        self.cls_thresh = cls_thresh
-        self.nms_thresh = nms_thresh
+        self.penalty_k  = penalty_k
+        self.window_factor = window_factor
+        self.momentum = momentum
 
-    def set_template(self, template_image, bbox=None):
+        self.window = get_hamming_window(feature_size, self.num_anchor)
+        self.state = edict()
+
+    def set_template(self, template_image, bbox):
         """
         Params:
             template_image: {ndarray(H, W, C)}
-            bbox:           {ndarray(4)}
+            bbox:           {ndarray(4)}        x1, y1, x2, y2
         """
-        if bbox is not None:
-            template_image = crop_square_according_to_bbox(template_image, bbox, self.template_size, self.pad)
+        self._update_state(bbox)
+        
+        template_image = crop_square_according_to_bbox(
+            template_image, bbox, self.template_size, self.pad)
         # cv2.imshow("template_image", template_image); cv2.waitKey(0)
+        
         template_tensor = self._ndarray2tensor(template_image)
         self.net.template(template_tensor)
 
@@ -69,50 +83,81 @@ class SiamRPNTracker():
         Returns:
             bbox: {ndarray(N, 4)}
         """
-        # cv2.imshow("search_image", search_image); cv2.waitKey(0)
-        search_tensor = self._ndarray2tensor(search_image)
+        search_crop, (scale, shift) = crop_square_according_to_bbox(
+                search_image, self.state.corner, self.search_size, lambda w, h: self.pad(w, h) * 2, return_param=True)
+
+        # show_bbox(search_image, self.state.corner, winname='search_image')
+        # show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop')
         
         with torch.no_grad(): 
-            pred_cls, pred_reg = self.net.track(search_tensor)
-            pred_cls = torch.sigmoid(pred_cls.squeeze()); pred_reg = pred_reg.squeeze()
+            pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_crop))          
+            score = torch.sigmoid(pred_cls.squeeze()).cpu().numpy()  # (   5, 17, 17)
+            pred_reg = pred_reg.squeeze().cpu().numpy()                 # (4, 5, 17, 17)
 
-            # pair anchor for search_image
-            anchors_center, anchors_corner = pair_anchors(
-                self.anchors_naive, pred_cls.size()[1:], self.search_size, self.feature_size, self.stride)
-            visualize_anchor(search_image.copy(), anchors_corner[:, :, 8, 8].T)
-            anchors_center = torch.from_numpy(anchors_center).view(4, -1).t().float().to(self.device)   # (A, 4)
+        # pair anchor for search_image
+        anchors_center, _ = pair_anchors(
+            self.anchors_naive, score.shape[-2:], self.search_size, self.feature_size, self.stride)
 
-            # filter `class score < thresh`
-            pred_cls = pred_cls.view(-1)        # (N)
-            pred_reg = pred_reg.view(4, -1).t() # (N, 4)
-            mask_cls = torch.nonzero(pred_cls > self.cls_thresh)
-            if mask_cls.size(0) == 0:
-                return np.full((0, 4), 0, dtype=np.float32), np.full(0, 0, dtype=np.float32)
+        # refine
+        bbox_center    = np.zeros_like(pred_reg)                        # (4, 5, 17, 17)
+        bbox_center[0] = anchors_center[2] * pred_reg[0] + anchors_center[0]    # xc
+        bbox_center[1] = anchors_center[3] * pred_reg[1] + anchors_center[1]    # yc
+        bbox_center[2] =              np.exp(pred_reg[2])* anchors_center[2]    #  w
+        bbox_center[3] =              np.exp(pred_reg[3])* anchors_center[3]    #  h
 
-            mask_cls = mask_cls.squeeze()
-            anchors_center = torch.index_select(anchors_center, 0, mask_cls)
-            pred_cls       = torch.index_select(pred_cls, 0, mask_cls)
-            pred_reg       = torch.index_select(pred_reg, 0, mask_cls)
+        # penalty
+        r = self._r(bbox_center[2], bbox_center[3])                     # (   5, 17, 17)
+        r[r <= 0] = np.finfo(np.float).eps
+        s = self._s(bbox_center[2], bbox_center[3])                     # (   5, 17, 17)
+        s[s <= 0] = np.finfo(np.float).eps
+        pr = np.maximum(r / self.state.r, self.state.r / r)             # (   5, 17, 17)
+        ps = np.maximum(s / self.state.s, self.state.s / s)             # (   5, 17, 17)
+        penalty = np.exp(- (pr * ps - 1) * self.penalty_k)              # (   5, 17, 17)
+        pscore = score * penalty                                        # (   5, 17, 17)
 
-            # refine
-            bbox_center       = torch.zeros_like(pred_reg)
-            bbox_center[:, 0] = pred_reg[:, 0] * anchors_center[:, 2] + anchors_center[:, 0]    # xc
-            bbox_center[:, 1] = pred_reg[:, 1] * anchors_center[:, 3] + anchors_center[:, 1]    # yc
-            bbox_center[:, 2] = torch.exp(pred_reg[:, 2]) * anchors_center[:, 2]                #  w
-            bbox_center[:, 3] = torch.exp(pred_reg[:, 3]) * anchors_center[:, 3]                #  h
+        # cosine window
+        pscore = self.window * self.window_factor + \
+                            pscore * (1 - self.window_factor)           # (   5, 17, 17)
 
-            M = torch.tensor([[ 1  ,  0  , 1  ,  0  ],[ 0  ,  1  , 0  ,  1  ],[-0.5,  0  , 0.5,  0  ],[ 0  , -0.5, 0  ,  0.5]], dtype=torch.float32, device=self.device)
-            bbox_corner = torch.mm(bbox_center, M)
+        # pick the highest score
+        a, r, c = np.unravel_index(pscore.argmax(), pscore.shape)
+        res_center = bbox_center[:, a, r, c]; score = score[a, r, c]
+        show_bbox(search_crop, np.array(center2corner(res_center)), score, winname='search_crop_output')
 
-
-            # nms
-            keep, count = nms(bbox_corner, pred_cls, self.nms_thresh)
-            bbox   = torch.index_select(bbox_corner, 0, keep[:count])
-            score  = torch.index_select(pred_cls,    0, keep[:count])
+        # ------------------------------------------------------
+        # get back!
+        res_center /= scale         # scale, ( w,  h)
+        res_center[:2] += shift     # shift, (xc, yc)
         
-        bbox  = bbox.cpu().numpy(); score = score.cpu().numpy()
-        print(bbox); print(score)
-        return bbox, score
+        # momentum
+        momentum = penalty[a, r, c] * score * self.momentum
+        res_center[2:] = res_center[2:] * momentum + self.state.center[2:] * (1 - momentum)     # w, h
+        
+        res_corner = np.array(center2corner(res_center))
+        # show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output')
+
+        self._update_state(res_corner)
+
+        return res_corner, score
 
     def _ndarray2tensor(self, ndarray):
         return torch.from_numpy(ndarray.transpose(2, 0, 1) / 255.).unsqueeze(0).float().to(self.device)
+
+    def _update_state(self, bbox):
+        """ Update state
+        Params:
+            bbox: {ndarray(4)} x1, y1, x2, y2
+        """
+        self.state.corner = bbox                           # x1, y1, x2, y2
+        self.state.center = np.array(corner2center(bbox))  # xc, yc,  w,  h
+
+        w, h = self.state.center[2:]
+        self.state.r = self._r(w, h)
+        self.state.s = self._s(w, h)
+
+    def _r(self, w, h):
+        return w / h
+    
+    def _s(self, w, h):
+        p = self.pad(w, h)
+        return np.sqrt(w + p) * np.sqrt(h + p)
