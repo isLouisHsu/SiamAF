@@ -154,7 +154,7 @@ def visualize_anchor(im, anchor):
     for a in anchor:
         x1, y1, x2, y2 = list(map(int, a))
         cv2.rectangle(im, (x1, y1), (x2, y2), (0, 0, 0), thickness=0)
-    cv2.imshow("", im)
+    cv2.imshow("visualize anchor", im)
     cv2.waitKey(0)
 
 def encode(location, anchor_center):

@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-03 20:41:14
+@LastEditTime: 2019-12-06 11:27:04
 @Update: 
 '''
 import sys
@@ -55,17 +55,21 @@ class RpnLoss(nn.Module):
         anchor = self.anchor_corner.to(gt_bbox.device)
         iou = jaccard(gt_bbox, anchor)          # (N, A)
 
-        # 0: neg, 1: pos, -1: ignore
+        # 0: neg; 1: pos; 2: part; -1: ignore
         negative = torch.zeros_like(iou)
+        part     = torch.ones_like (iou) * 2
         positive = torch.ones_like (iou)
         matched     = torch.ones_like (iou) * -1
+        
+        matched = torch.where(iou == 0., negative, matched)
+        matched = torch.where((iou > 0.) & (iou < self.anchor_thr_low),  part, matched)
         matched = torch.where(iou > self.anchor_thr_high, positive, matched)
-        matched = torch.where(iou < self.anchor_thr_low,  negative, matched)
 
         # print(iou.max())
-        # print((matched == 1).sum())
-        # print((matched == 0).sum())
-        # print((matched == -1).sum())
+        # print("ignore:   ", (matched == -1).sum())
+        # print("positive: ", (matched == 1).sum())
+        # print("part:     ", (matched == 2).sum())
+        # print("negative: ", (matched == 0).sum())
 
         return matched
 
@@ -85,9 +89,10 @@ class RpnLoss(nn.Module):
             cls = cls.view(-1); reg = reg.view(4, -1).t()
             
             # classification
-            cls_pred_pos = torch.masked_select(cls, mask == 1)
-            cls_pred_neg = torch.masked_select(cls, mask == 0)
-            n_pos, n_neg = cls_pred_pos.size(0), cls_pred_neg.size(0)
+            cls_pred_neg  = torch.masked_select(cls, mask == 0)
+            cls_pred_pos  = torch.masked_select(cls, mask == 1)
+            cls_pred_part = torch.masked_select(cls, mask == 2)
+            n_pos, n_neg, n_part  = cls_pred_pos.size(0), cls_pred_neg.size(0), cls_pred_part.size(0)
             if n_pos == 0:
                 index = np.arange(n_neg); np.random.shuffle(index)
                 cls_pred_neg = cls_pred_neg[index][:self.n_neg]
@@ -95,32 +100,41 @@ class RpnLoss(nn.Module):
 
                 loss_cls_i = self.bce(cls_pred_neg, cls_gt_neg)
             else:
+                # pos
                 index = np.arange(n_pos); np.random.shuffle(index)
                 cls_pred_pos = cls_pred_pos[index][:self.n_pos]
                 cls_gt_pos    = torch.ones_like(cls_pred_pos)
                 
+                ratio = self.n_neg / self.n_pos
+                # part
+                index = np.arange(n_part); np.random.shuffle(index)
+                cls_pred_part = cls_pred_part[index][:int(n_pos * ratio * (n_part / (n_neg + n_part)))]
+                cls_gt_part    = torch.zeros_like(cls_pred_part)
+
+                # neg
                 index = np.arange(n_neg); np.random.shuffle(index)
-                cls_pred_neg = cls_pred_neg[index][:int(n_pos * self.n_neg / self.n_pos)]
-                cls_gt_neg    = torch.zeros_like(cls_pred_neg)
+                cls_pred_neg = cls_pred_neg[index][:int(n_pos * ratio * (n_neg / (n_neg + n_part)))]
+                cls_gt_neg   = torch.zeros_like(cls_pred_neg)
                 
                 loss_cls_i = self.bce(
-                        torch.cat([cls_pred_pos, cls_pred_neg]), 
-                        torch.cat([  cls_gt_pos,   cls_gt_neg]))
+                        torch.cat([cls_pred_pos, cls_pred_part, cls_pred_neg]), 
+                        torch.cat([  cls_gt_pos,   cls_gt_part,  cls_gt_neg]))
             loss_cls += loss_cls_i
 
             # accuracy
+            cls = torch.sigmoid(cls)
             cls_pred_pos = torch.masked_select(cls, mask == 1) >= self.pos_thr
             cls_pred_neg = torch.masked_select(cls, mask != 1) <  self.pos_thr
             acc_cls += (cls_pred_pos.sum() + cls_pred_neg.sum()).double() / (cls_pred_pos.numel() + cls_pred_neg.numel())
 
             # regression
             index = torch.nonzero(mask == 1).squeeze()
-            reg_pred = torch.index_select(   reg, 0, index)
+            reg_pred = torch.index_select(                                  reg, 0, index)
             anchor   = torch.index_select(self.anchor_center.to(gt_bbox.device), 0, index) # xc, yc, w, h
             if anchor.size(0) == 0:
                 loss_reg_i = torch.tensor(0.)
             else:
-                gtc = torch.tensor(corner2center(gt))
+                gtc = torch.tensor(corner2center(gt))   # xc, yc, w, h
                 reg_gt   = encode(gtc, anchor)
                 loss_reg_i = self.mse(reg_pred, reg_gt)
             loss_reg += loss_reg_i

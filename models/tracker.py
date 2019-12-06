@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-05 11:40:41
+@LastEditTime: 2019-12-06 10:40:19
 @Update: 
 '''
 import sys
@@ -18,7 +18,7 @@ import numpy as np
 import torch
 
 from .network import SiamRPN
-from utils.box_utils import crop_square_according_to_bbox, pair_anchors, decode, center2corner, nms
+from utils.box_utils import crop_square_according_to_bbox, pair_anchors, decode, center2corner, nms, visualize_anchor
 
 class SiamRPNTracker():
 
@@ -42,8 +42,6 @@ class SiamRPNTracker():
         self.cls_thresh = cls_thresh
         self.nms_thresh = nms_thresh
 
-        self.template_setted = False
-
     def set_template(self, template_image, bbox=None):
         """
         Params:
@@ -53,15 +51,17 @@ class SiamRPNTracker():
         if bbox is not None:
             template_image = crop_square_according_to_bbox(template_image, bbox, self.template_size, self.pad)
         # cv2.imshow("template_image", template_image); cv2.waitKey(0)
-        template_image = self._ndarray2tensor(template_image)
-        self.net.template(template_image)
-        self.template_setted = True
+        template_tensor = self._ndarray2tensor(template_image)
+        self.net.template(template_tensor)
 
     def delete_template(self):
 
         self.net.z_f = None
-        self.template_setted = False
     
+    def template_is_setted(self):
+
+        return self.net.z_f is not None
+
     def track(self, search_image):
         """
         Params:
@@ -70,15 +70,16 @@ class SiamRPNTracker():
             bbox: {ndarray(N, 4)}
         """
         # cv2.imshow("search_image", search_image); cv2.waitKey(0)
-        search_image = self._ndarray2tensor(search_image)
+        search_tensor = self._ndarray2tensor(search_image)
         
         with torch.no_grad(): 
-            pred_cls, pred_reg = self.net.track(search_image)
+            pred_cls, pred_reg = self.net.track(search_tensor)
             pred_cls = torch.sigmoid(pred_cls.squeeze()); pred_reg = pred_reg.squeeze()
 
             # pair anchor for search_image
-            anchors_center, _ = pair_anchors(
+            anchors_center, anchors_corner = pair_anchors(
                 self.anchors_naive, pred_cls.size()[1:], self.search_size, self.feature_size, self.stride)
+            visualize_anchor(search_image.copy(), anchors_corner[:, :, 8, 8].T)
             anchors_center = torch.from_numpy(anchors_center).view(4, -1).t().float().to(self.device)   # (A, 4)
 
             # filter `class score < thresh`
@@ -95,13 +96,14 @@ class SiamRPNTracker():
 
             # refine
             bbox_center       = torch.zeros_like(pred_reg)
-            bbox_center[:, 0] = pred_reg[:, 0] * anchors_center[:, 2] + anchors_center[:, 0]
-            bbox_center[:, 1] = pred_reg[:, 1] * anchors_center[:, 3] + anchors_center[:, 1]
-            bbox_center[:, 2] = torch.exp(pred_reg[:, 2]) * anchors_center[:, 2]
-            bbox_center[:, 3] = torch.exp(pred_reg[:, 3]) * anchors_center[:, 3]
+            bbox_center[:, 0] = pred_reg[:, 0] * anchors_center[:, 2] + anchors_center[:, 0]    # xc
+            bbox_center[:, 1] = pred_reg[:, 1] * anchors_center[:, 3] + anchors_center[:, 1]    # yc
+            bbox_center[:, 2] = torch.exp(pred_reg[:, 2]) * anchors_center[:, 2]                #  w
+            bbox_center[:, 3] = torch.exp(pred_reg[:, 3]) * anchors_center[:, 3]                #  h
 
             M = torch.tensor([[ 1  ,  0  , 1  ,  0  ],[ 0  ,  1  , 0  ,  1  ],[-0.5,  0  , 0.5,  0  ],[ 0  , -0.5, 0  ,  0.5]], dtype=torch.float32, device=self.device)
             bbox_corner = torch.mm(bbox_center, M)
+
 
             # nms
             keep, count = nms(bbox_corner, pred_cls, self.nms_thresh)

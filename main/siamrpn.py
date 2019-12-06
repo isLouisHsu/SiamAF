@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-05 11:48:29
+@LastEditTime: 2019-12-06 11:26:52
 @Update: 
 '''
 import os
@@ -165,11 +165,11 @@ def testSequence(configer):
             for i_frame, (impath, bbox) in enumerate(zip(impaths, anno)):
                 
                 image = cv2.imread(impath, cv2.IMREAD_COLOR)
-                if bbox is not None and tracker.template_setted is False:
+                if bbox is not None and not tracker.template_is_setted():
                     tracker.set_template(image, bbox)
                     continue
 
-                bbox = tracker.track(image)
+                bbox, _ = tracker.track(image)
                 show_bbox(image.copy(), bbox, waitkey=0)
             
             tracker.delete_template()
