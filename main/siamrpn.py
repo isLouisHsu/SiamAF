@@ -177,5 +177,5 @@ def testSequence(configer):
 
 if __name__ == '__main__':
 
-    # train(configer)
-    testSequence(configer)
+    train(configer)
+    # testSequence(configer)
