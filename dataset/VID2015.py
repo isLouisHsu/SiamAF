@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-07 09:57:55
+@LastEditTime: 2019-12-07 10:02:35
 @Update: 
 '''
 import sys
@@ -113,8 +113,8 @@ class VID2015PairData(Dataset):
         template_image, template_bbox = self._augment_crop(template_image, template_bbox, self.template_size)
         search_image,   search_bbox   = self._augment_crop(search_image,   search_bbox,   self.search_size)
 
-        show_bbox(template_image, template_bbox, winname='[line102] template %d' % template_idx)
-        show_bbox(search_image, search_bbox, winname='[line103] search %d' % search_idx)
+        # show_bbox(template_image, template_bbox, winname='[line116] template %d' % template_idx)
+        # show_bbox(search_image, search_bbox, winname='[line117] search %d' % search_idx)
         # visualize_anchor(search_image, corner[:, :, 8, 8].T)
 
         # ------------ to tensor ----------------
@@ -211,8 +211,7 @@ class VID2015PairData(Dataset):
 
         # crop
         p = self.pad(w, h)
-        a = int(np.sqrt((w + p) * (h + p)) * (size // self.template_size))
-        im, (scale, shift) = crop_square_according_to_bbox(im, bbox, a, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), return_param=True)
+        im, (scale, shift) = crop_square_according_to_bbox(im, bbox, size, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), return_param=True)
         bbox[[0, 2]] -= shift[0]; bbox[[1, 3]] -= shift[1]; bbox *= scale
 
         # transform
