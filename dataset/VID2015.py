@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-07 10:03:53
+@LastEditTime: 2019-12-07 20:14:46
 @Update: 
 '''
 import sys
@@ -106,8 +106,8 @@ class VID2015PairData(Dataset):
         template_image = cv2.imread(os.path.join(datapath, '{:06d}.JPEG'.format(template_idx)))
         search_image   = cv2.imread(os.path.join(datapath, '{:06d}.JPEG'.format(search_idx  )))
 
-        # show_bbox(template_image, template_bbox, '[line95] template %d' % template_idx)
-        # show_bbox(search_image, search_bbox, '[line96] search %d' % search_idx)
+        # show_bbox(template_image, template_bbox, winname='[line95] template %d' % template_idx)
+        # show_bbox(search_image, search_bbox, winname='[line96] search %d' % search_idx)
 
         # --------- augmentation and crop -------
         template_image, template_bbox = self._augment_crop(template_image, template_bbox, self.template_size)
