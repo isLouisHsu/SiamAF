@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-06 21:14:49
+@LastEditTime: 2019-12-07 10:28:07
 @Update: 
 '''
 import os
@@ -177,5 +177,5 @@ def testSequence(configer):
 
 if __name__ == '__main__':
 
-    train(configer)
-    # testSequence(configer)
+    # train(configer)
+    testSequence(configer)
