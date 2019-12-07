@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-07 09:35:27
+@LastEditTime: 2019-12-07 10:16:47
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -46,7 +46,7 @@ configer.siamrpn.loss.cls_weight = 1.0
 configer.siamrpn.loss.reg_weight = 1.0
 configer.siamrpn.loss.pos_thr    = 0.9
 configer.siamrpn.loss.anchor_thr_low  = 0.4
-configer.siamrpn.loss.anchor_thr_high = 0.65
+configer.siamrpn.loss.anchor_thr_high = 0.6
 configer.siamrpn.loss.n_pos = 16
 configer.siamrpn.loss.n_neg = 48
 
