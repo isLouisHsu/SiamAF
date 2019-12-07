@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-06 21:14:05
+@LastEditTime: 2019-12-07 10:43:03
 @Update: 
 '''
 import sys
@@ -122,7 +122,7 @@ class SiamRPNTracker():
         # pick the highest score
         a, r, c = np.unravel_index(pscore.argmax(), pscore.shape)
         res_center = bbox_center[:, a, r, c]; score = score[a, r, c]
-        show_bbox(search_crop, np.array(center2corner(res_center)), score, winname='search_crop_output')
+        show_bbox(search_crop, np.array(center2corner(res_center)), winname='search_crop_output')
 
         # ------------------------------------------------------
         # get back!
