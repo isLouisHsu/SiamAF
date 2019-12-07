@@ -45,24 +45,24 @@ configer.siamrpn.loss = edict()
 configer.siamrpn.loss.cls_weight = 1.0
 configer.siamrpn.loss.reg_weight = 1.0
 configer.siamrpn.loss.pos_thr    = 0.9
-configer.siamrpn.loss.anchor_thr_low  = 0.4
+configer.siamrpn.loss.anchor_thr_low  = 0.3
 configer.siamrpn.loss.anchor_thr_high = 0.6
 configer.siamrpn.loss.n_pos = 16
 configer.siamrpn.loss.n_neg = 48
 
 configer.siamrpn.optimizer = edict()
-configer.siamrpn.optimizer.lr = 0.0005
+configer.siamrpn.optimizer.lr = 0.001
 configer.siamrpn.optimizer.weight_decay = 5e-4
 
 configer.siamrpn.scheduler = edict()
-configer.siamrpn.scheduler.gamma = 0.95
+configer.siamrpn.scheduler.gamma = 0.9
 
 configer.siamrpn.train = edict()
-configer.siamrpn.train.batch_size = 64
+configer.siamrpn.train.batch_size = 128
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
-configer.siamrpn.train.n_epoch = 50
+configer.siamrpn.train.n_epoch = 70
 configer.siamrpn.train.resume = None
 
 configer.siamrpn.tracker = edict()
