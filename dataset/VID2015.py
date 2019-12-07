@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-07 10:02:35
+@LastEditTime: 2019-12-07 10:03:53
 @Update: 
 '''
 import sys
@@ -210,7 +210,6 @@ class VID2015PairData(Dataset):
         # show_bbox(im, bbox, winname='[line210]')
 
         # crop
-        p = self.pad(w, h)
         im, (scale, shift) = crop_square_according_to_bbox(im, bbox, size, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), return_param=True)
         bbox[[0, 2]] -= shift[0]; bbox[[1, 3]] -= shift[1]; bbox *= scale
 
