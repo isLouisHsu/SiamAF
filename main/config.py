@@ -21,8 +21,8 @@ configer.siamrpn.vid.search_size   = 255
 configer.siamrpn.vid.frame_range   = 20
 configer.siamrpn.vid.pad = lambda w, h: (w + h) / 2,
 configer.siamrpn.vid.blur= 1
-configer.siamrpn.vid.rotate = 0
-configer.siamrpn.vid.scale  = 0
+configer.siamrpn.vid.rotate = 5
+configer.siamrpn.vid.scale  = 0.05
 configer.siamrpn.vid.color  = 1
 configer.siamrpn.vid.flip   = 1
 
