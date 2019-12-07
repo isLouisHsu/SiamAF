@@ -45,43 +45,6 @@ def naive_anchors(ratios=[0.33, 0.5, 1, 2, 3], scalers=[8], stride=8):
             count += 1
     return anchors_naive
 
-# def pair_anchors(anchors_naive, center=255//2, feature_size=17, stride=8):
-#     """
-
-#     anchors corresponding to pairs
-#     :param center: center of search image
-#     :param feature_size: output score size after cross-correlation
-#     :return: anchors not corresponding to ground truth
-#     """
-#     anchor_nums = anchors_naive.shape[0]
-    
-#     a0x = center - feature_size // 2 * stride    # 255 // 2 - 17 // 2 * 8 = 63
-#     ori = np.array([a0x] * 4, dtype=np.float32)     # [63, 63, 63, 63]
-#     zero_anchors = anchors_naive + ori
-
-#     x1 = zero_anchors[:, 0]
-#     y1 = zero_anchors[:, 1]
-#     x2 = zero_anchors[:, 2]
-#     y2 = zero_anchors[:, 3]
-
-#     x1, y1, x2, y2 = map(lambda x: x.reshape(anchor_nums, 1, 1), [x1, y1, x2, y2])
-#     cx, cy, w, h = corner2center([x1, y1, x2, y2])
-
-#     disp_x = np.arange(0, feature_size).reshape(1, 1, -1) * stride
-#     disp_y = np.arange(0, feature_size).reshape(1, -1, 1) * stride
-
-#     cx = cx + disp_x
-#     cy = cy + disp_y
-
-#     zero = np.zeros((anchor_nums, feature_size, feature_size), dtype=np.float32)
-#     cx, cy, w, h = map(lambda x: x + zero, [cx, cy, w, h])
-#     x1, y1, x2, y2 = center2corner([cx, cy, w, h])
-
-#     center = np.stack([cx, cy, w, h])
-#     corner = np.stack([x1, y1, x2, y2])
-
-#     return center, corner
-
 def pair_anchors(anchors_naive, score_size=(17, 17), 
         search_size=255, feature_size=17, stride=8):
     """

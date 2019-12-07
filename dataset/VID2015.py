@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-06 20:08:55
+@LastEditTime: 2019-12-07 09:57:55
 @Update: 
 '''
 import sys
@@ -24,7 +24,7 @@ from scipy.ndimage.filters import gaussian_filter
 from easydict import EasyDict as edict
 
 from utils.image_augmentation import *
-from utils.box_utils import corner2center, center2corner, show_bbox
+from utils.box_utils import corner2center, center2corner, show_bbox, crop_square_according_to_bbox
 
 # from config import configer
 # from utils.box_utils import get_anchor_train, visualize_anchor
@@ -113,8 +113,8 @@ class VID2015PairData(Dataset):
         template_image, template_bbox = self._augment_crop(template_image, template_bbox, self.template_size)
         search_image,   search_bbox   = self._augment_crop(search_image,   search_bbox,   self.search_size)
 
-        # show_bbox(template_image, template_bbox, '[line102] template %d' % template_idx)
-        # show_bbox(search_image, search_bbox, '[line103] search %d' % search_idx)
+        show_bbox(template_image, template_bbox, winname='[line102] template %d' % template_idx)
+        show_bbox(search_image, search_bbox, winname='[line103] search %d' % search_idx)
         # visualize_anchor(search_image, corner[:, :, 8, 8].T)
 
         # ------------ to tensor ----------------
@@ -144,7 +144,7 @@ class VID2015PairData(Dataset):
                 bboxes = np.stack([v for v in anno.values()])
             except:
                 continue
-            show_bbox(image, bboxes, 'vis%d' % index, 30)
+            show_bbox(image, bboxes, winname='vis%d' % index, waitkey=30)
 
     def _list_samples(self):
 
@@ -185,7 +185,7 @@ class VID2015PairData(Dataset):
         """
         Params:
             im:   {ndarray(H, W, C)}
-            bbox: {ndarray(4)}
+            bbox: {ndarray(4)}        x1, y1, x2, y2
             size: {int}
         """
         imh, imw = im.shape[:-1]
@@ -196,40 +196,33 @@ class VID2015PairData(Dataset):
         rotate_rand = self.rotate * (np.random.rand() * 2. - 1)
         scale_rand  = self.scale  * (np.random.rand() * 2. - 1) + 1
 
+        # show_bbox(im, bbox, winname='[line199]')
+
         xc, yc, w, h = corner2center(bbox)
         M = cv2.getRotationMatrix2D((xc, yc), rotate_rand, scale_rand)
         im = cv2.warpAffine(im, M, (imw, imh), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
 
+        # show_bbox(im, bbox, winname='[line205]')
+
         bbox = np.array(center2corner(np.array([xc, yc, w * scale_rand, h * scale_rand])))
         xc, yc, w, h = corner2center(bbox)
 
-        # show_bbox(im, bbox, '[line196]')
+        # show_bbox(im, bbox, winname='[line210]')
 
         # crop
         p = self.pad(w, h)
         a = int(np.sqrt((w + p) * (h + p)) * (size // self.template_size))
-        x1 = xc - a // 2; y1 = yc - a // 2; x2 = x1 + a; y2 = y1 + a
+        im, (scale, shift) = crop_square_according_to_bbox(im, bbox, a, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), return_param=True)
+        bbox[[0, 2]] -= shift[0]; bbox[[1, 3]] -= shift[1]; bbox *= scale
 
-        bbox[[0, 2]] -= x1; bbox[[1, 3]] -= y1
-        xc_, yc_, w_, h_ = corner2center(bbox)
-        
-        M = np.float32([
-                [1, 0, xc_ - xc], 
-                [0, 1, yc_ - yc]
-            ])
-        im = cv2.warpAffine(im, M, (a, a), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
-        
         # transform
         im = np.array(self.transformer(im))
         
         # blur
         if self.blur > np.random.rand():
             im = gaussian_filter(im, sigma=(1, 1, 0))
-
-        # resize
-        im = cv2.resize(im, (size, size))
-        s = a / size
-        bbox /= s
+        
+        # show_bbox(im, bbox, winname='[line225]')
 
         return im, bbox
 
@@ -269,14 +262,12 @@ if __name__ == '__main__':
 
     pass
 
-    # dataset = VID2015PairData('train')
-    # dataset = VID2015PairData('val')
-    # for i in range(len(dataset)):
-    #     dataset.vis(i)
-    # for i, (template, template_bbox, search, search_bbox) in enumerate(dataset):
-    #     pass
+    dataset = VID2015PairData('val')
+    # for i in range(len(dataset)): dataset.vis(i)
+    for i, (template, template_bbox, search, search_bbox) in enumerate(dataset):
+        pass
     
-    # dataset = VID2015SequenceData('val')
-    # for i, data in enumerate(dataset):
-    #     pass
+    dataset = VID2015SequenceData('val')
+    for i, data in enumerate(dataset):
+        pass
 
