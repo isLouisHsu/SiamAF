@@ -58,7 +58,7 @@ configer.siamrpn.scheduler = edict()
 configer.siamrpn.scheduler.gamma = 0.9
 
 configer.siamrpn.train = edict()
-configer.siamrpn.train.batch_size = 128
+configer.siamrpn.train.batch_size = 64
 configer.siamrpn.train.clip_grad  = 10
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
