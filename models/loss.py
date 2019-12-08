@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-06 11:27:04
+@LastEditTime: 2019-12-08 11:13:36
 @Update: 
 '''
 import sys
@@ -42,8 +42,9 @@ class RpnLoss(nn.Module):
                 map(lambda x: torch.from_numpy(x.reshape(4, -1).T).float().contiguous(), anchors))
         
         self.bce = nn.BCEWithLogitsLoss()
-        self.mse = nn.MSELoss()
+        self.l1  = nn.L1Loss()
         self.smoothl1 = nn.SmoothL1Loss()
+        self.mse = nn.MSELoss()
 
     def _match(self, gt_bbox):
         """
@@ -136,7 +137,7 @@ class RpnLoss(nn.Module):
             else:
                 gtc = torch.tensor(corner2center(gt))   # xc, yc, w, h
                 reg_gt   = encode(gtc, anchor)
-                loss_reg_i = self.mse(reg_pred, reg_gt)
+                loss_reg_i = self.l1(reg_pred, reg_gt)
             loss_reg += loss_reg_i
 
         loss_cls, loss_reg, acc_cls = list(map(lambda x: x / gt_bbox.size(0), [loss_cls, loss_reg, acc_cls]))

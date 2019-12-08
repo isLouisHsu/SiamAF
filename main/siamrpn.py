@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-07 10:28:07
+@LastEditTime: 2019-12-08 11:12:22
 @Update: 
 '''
 import os
@@ -79,7 +79,10 @@ def train(configer):
             loss_total_i, loss_cls_i, loss_reg_i, acc_cls_i = loss(pred_cls, pred_reg, gt)
 
             try:
-                optimizer.zero_grad(); loss_total_i.backward(); optimizer.step()
+                optimizer.zero_grad()
+                loss_total_i.backward()
+                nn.utils.clip_grad_norm(net.parameters(), 10)   # gradient clip
+                optimizer.step()
             except:
                 pass
 
