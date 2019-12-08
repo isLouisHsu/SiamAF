@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-08 11:12:22
+@LastEditTime: 2019-12-08 14:17:03
 @Update: 
 '''
 import os
@@ -81,7 +81,7 @@ def train(configer):
             try:
                 optimizer.zero_grad()
                 loss_total_i.backward()
-                nn.utils.clip_grad_norm(net.parameters(), 10)   # gradient clip
+                nn.utils.clip_grad_norm_(net.parameters(), params.clip_grad)   # gradient clip
                 optimizer.step()
             except:
                 pass

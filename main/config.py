@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-07 20:15:57
+@LastEditTime: 2019-12-08 14:16:50
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -59,6 +59,7 @@ configer.siamrpn.scheduler.gamma = 0.9
 
 configer.siamrpn.train = edict()
 configer.siamrpn.train.batch_size = 128
+configer.siamrpn.train.clip_grad  = 10
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
