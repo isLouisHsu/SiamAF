@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-08 20:02:51
+@LastEditTime: 2019-12-09 11:44:02
 @Update: 
 '''
 import sys
@@ -14,6 +14,7 @@ sys.path.append('..')
 
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 from easydict import EasyDict as edict
 
 import torch
@@ -107,9 +108,7 @@ class SiamRPNTracker():
 
         # penalty
         r = self._r(bbox_center[2], bbox_center[3])                     # (   5, 17, 17)
-        r[r <= 0] = np.finfo(np.float).eps
         s = self._s(bbox_center[2], bbox_center[3])                     # (   5, 17, 17)
-        s[s <= 0] = np.finfo(np.float).eps
         pr = np.maximum(r / self.state.r, self.state.r / r)             # (   5, 17, 17)
         ps = np.maximum(s / self.state.s, self.state.s / s)             # (   5, 17, 17)
         penalty = np.exp(- (pr * ps - 1) * self.penalty_k)              # (   5, 17, 17)
@@ -119,10 +118,18 @@ class SiamRPNTracker():
         pscore = self.window * self.window_factor + \
                             pscore * (1 - self.window_factor)           # (   5, 17, 17)
 
+        fig = plt.figure()
+        for i_anchor in range(self.num_anchor):
+            fig.add_subplot(2, 5, i_anchor + 1)
+            plt.imshow(score[i_anchor])
+            fig.add_subplot(2, 5, i_anchor + 6)
+            plt.imshow(pscore[i_anchor])
+        plt.show()
+
         # pick the highest score
         a, r, c = np.unravel_index(pscore.argmax(), pscore.shape)
         res_center = bbox_center[:, a, r, c]; score = score[a, r, c]
-        # show_bbox(search_crop, np.array(center2corner(res_center)), winname='search_crop_output')
+        show_bbox(search_crop, np.array(center2corner(res_center)), winname='search_crop_output')
 
         # ------------------------------------------------------
         # get back!
@@ -131,7 +138,6 @@ class SiamRPNTracker():
         
         # momentum
         momentum = penalty[a, r, c] * score * self.momentum
-        # res_center[:2] = res_center[:2] * momentum + self.state.center[:2] * (1 - momentum)     # xc, yc
         res_center[2:] = res_center[2:] * momentum + self.state.center[2:] * (1 - momentum)     #  w,  h
         
         res_corner = np.array(center2corner(res_center))

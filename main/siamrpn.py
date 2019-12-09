@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-08 20:04:16
+@LastEditTime: 2019-12-09 11:44:14
 @Update: 
 '''
 import os
@@ -172,9 +172,9 @@ def testSequence(configer):
                     tracker.set_template(image, bbox)
                     continue
 
-                show_bbox(image, bbox, waitkey=20, winname='gt')
+                # show_bbox(image, bbox, waitkey=20, winname='gt')
                 bbox, _ = tracker.track(image)
-                show_bbox(image, bbox, waitkey=20, winname='pred')
+                # show_bbox(image, bbox, waitkey=20, winname='pred')
             
             tracker.delete_template()
 
