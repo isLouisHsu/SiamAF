@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-09 11:44:14
+@LastEditTime: 2019-12-09 15:10:07
 @Update: 
 '''
 import os
@@ -28,7 +28,7 @@ from config import configer
 from dataset.VID2015 import VID2015PairData, VID2015SequenceData
 from models.network import SiamRPN
 from models.loss    import RpnLoss
-from utils.box_utils import get_anchor_train
+from utils.box_utils import get_anchor
 
 use_cuda = cuda.is_available() and configer.siamrpn.train.cuda
 device = torch.device('cuda:0' if use_cuda else 'cpu')
@@ -54,7 +54,7 @@ def train(configer):
     net.to(device)
     
     # optimize
-    loss = RpnLoss(get_anchor_train(**configer.siamrpn.anchor),   **configer.siamrpn.loss)
+    loss = RpnLoss(get_anchor(**configer.siamrpn.anchor),   **configer.siamrpn.loss)
     optimizer = optim.Adam(net.parameters(),                **configer.siamrpn.optimizer)
     scheduler = lr_scheduler.ExponentialLR(optimizer,       **configer.siamrpn.scheduler)
 
@@ -147,18 +147,14 @@ def testSequence(configer):
     dataset = VID2015SequenceData('val', **configer.siamrpn.vid)
 
     # initialize anchor
-    anchors_naive = naive_anchors(
-        configer.siamrpn.anchor.anchor_ratios,
-        configer.siamrpn.anchor.anchor_scales,
-        configer.siamrpn.anchor.stride
-        )
+    anchors_center, _ = get_anchor(**configer.siamrpn.anchor)
 
     # initialize network
     net = SiamRPN(**configer.siamrpn.net)
     net.load_state_dict(
         torch.load(configer.siamrpn.train.ckpt, map_location='cpu'))
 
-    tracker = SiamRPNTracker(anchors_naive=anchors_naive, net=net, device=device, **configer.siamrpn.tracker)
+    tracker = SiamRPNTracker(anchors_center=anchors_center, net=net, device=device, **configer.siamrpn.tracker)
 
     for i_data, (impaths, annos, ids) in enumerate(dataset):
 

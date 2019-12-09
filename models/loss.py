@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-08 11:13:36
+@LastEditTime: 2019-12-09 15:04:58
 @Update: 
 '''
 import sys
@@ -55,6 +55,16 @@ class RpnLoss(nn.Module):
         """
         anchor = self.anchor_corner.to(gt_bbox.device)
         iou = jaccard(gt_bbox, anchor)          # (N, A)
+
+        # DEBUG:
+        # from matplotlib import pyplot as plt
+        # iou_ = iou.cpu().detach().numpy().reshape(iou.shape[0], 5, 17, 17)
+        # fig = plt.figure()
+        # for i in range(5):
+        #     for j in range(iou.shape[0]):
+        #         fig.add_subplot(iou.shape[0], 5, i*iou.shape[0] + j + 1)
+        #         plt.imshow(iou_[j, i, :, :])
+        # plt.show()
 
         # 0: neg; 1: pos; 2: part; -1: ignore
         negative = torch.zeros_like(iou)

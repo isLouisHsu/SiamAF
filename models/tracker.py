@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-09 11:44:02
+@LastEditTime: 2019-12-09 15:09:49
 @Update: 
 '''
 import sys
@@ -22,20 +22,17 @@ import torch
 from .network import SiamRPN
 from utils.box_utils import (
     crop_square_according_to_bbox, 
-    pair_anchors, get_hamming_window,
+    get_hamming_window,
     center2corner, corner2center, 
     nms, 
     visualize_anchor, show_bbox)
 
 class SiamRPNTracker():
 
-    def __init__(self, anchors_naive, net, device, 
+    def __init__(self, anchors_center, net, device, 
                 template_size=127, search_size=255, feature_size=17, center_size=7,
                 stride=8, pad=[lambda w, h: (w + h) / 2],
                 penalty_k=1.0, window_factor=0.42, momentum=0.295):
-
-        self.anchors_naive = anchors_naive
-        self.num_anchor = self.anchors_naive.shape[0]
 
         self.device = device
         self.net = net; self.net.to(device)
@@ -46,6 +43,9 @@ class SiamRPNTracker():
         self.center_size   = center_size
         self.stride        = stride
         self.pad = pad[0]
+
+        self.anchors_center = anchors_center
+        self.num_anchor = self.anchors_center.shape[1]
 
         self.penalty_k  = penalty_k
         self.window_factor = window_factor
@@ -88,23 +88,22 @@ class SiamRPNTracker():
                 search_image, self.state.corner, self.search_size, lambda w, h: self.pad(w, h) * 2, return_param=True)
 
         # show_bbox(search_image, self.state.corner, winname='search_image')
-        # show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop')
+        show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop')
         
         with torch.no_grad(): 
             pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_crop))          
             score = torch.sigmoid(pred_cls.squeeze()).cpu().numpy()  # (   5, 17, 17)
             pred_reg = pred_reg.squeeze().cpu().numpy()                 # (4, 5, 17, 17)
 
-        # pair anchor for search_image
-        anchors_center, _ = pair_anchors(
-            self.anchors_naive, score.shape[-2:], self.search_size, self.feature_size, self.stride)
-
         # refine
         bbox_center    = np.zeros_like(pred_reg)                        # (4, 5, 17, 17)
-        bbox_center[0] = anchors_center[2] * pred_reg[0] + anchors_center[0]    # xc
-        bbox_center[1] = anchors_center[3] * pred_reg[1] + anchors_center[1]    # yc
-        bbox_center[2] =              np.exp(pred_reg[2])* anchors_center[2]    #  w
-        bbox_center[3] =              np.exp(pred_reg[3])* anchors_center[3]    #  h
+        bbox_center[0] = self.anchors_center[2] * pred_reg[0] + self.anchors_center[0]  # xc
+        bbox_center[1] = self.anchors_center[3] * pred_reg[1] + self.anchors_center[1]  # yc
+        bbox_center[2] =              np.exp(pred_reg[2])* self.anchors_center[2]       #  w
+        bbox_center[3] =              np.exp(pred_reg[3])* self.anchors_center[3]       #  h
+
+        # cut output value
+        # TODO:
 
         # penalty
         r = self._r(bbox_center[2], bbox_center[3])                     # (   5, 17, 17)
@@ -141,7 +140,7 @@ class SiamRPNTracker():
         res_center[2:] = res_center[2:] * momentum + self.state.center[2:] * (1 - momentum)     #  w,  h
         
         res_corner = np.array(center2corner(res_center))
-        # show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output')
+        show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output')
 
         self._update_state(res_corner)
 

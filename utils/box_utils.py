@@ -84,7 +84,7 @@ def pair_anchors(anchors_naive, score_size=(17, 17),
     return center, corner
 
 
-def get_anchor_train(stride=8, template_size=127, search_size=255, feature_size=17,
+def get_anchor(stride=8, template_size=127, search_size=255, feature_size=17,
             anchor_ratios=[0.33, 0.5, 1., 2., 3.], anchor_scales=[8], vis_anchor=False):
     """
     Params:
