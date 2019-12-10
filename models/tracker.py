@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-10 16:09:44
+@LastEditTime: 2019-12-10 21:52:50
 @Update: 
 '''
 import sys
@@ -93,7 +93,7 @@ class SiamRPNTracker():
         with torch.no_grad(): 
             pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_crop))          
             score = torch.sigmoid(pred_cls.squeeze()).cpu().numpy()  # (   5, 17, 17)
-            pred_reg = torch.tanh(pred_reg)
+            pred_reg = pred_reg
             pred_reg = pred_reg.squeeze().cpu().numpy()                 # (4, 5, 17, 17)
 
         # refine
