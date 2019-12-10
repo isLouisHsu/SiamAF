@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-09 15:09:49
+@LastEditTime: 2019-12-10 16:09:44
 @Update: 
 '''
 import sys
@@ -64,7 +64,7 @@ class SiamRPNTracker():
         
         template_image = crop_square_according_to_bbox(
             template_image, bbox, self.template_size, self.pad)
-        # cv2.imshow("template_image", template_image); cv2.waitKey(0)
+        show_bbox(template_image, bbox, winname='template_image')
         
         template_tensor = self._ndarray2tensor(template_image)
         self.net.template(template_tensor)
@@ -93,6 +93,7 @@ class SiamRPNTracker():
         with torch.no_grad(): 
             pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_crop))          
             score = torch.sigmoid(pred_cls.squeeze()).cpu().numpy()  # (   5, 17, 17)
+            pred_reg = torch.tanh(pred_reg)
             pred_reg = pred_reg.squeeze().cpu().numpy()                 # (4, 5, 17, 17)
 
         # refine
@@ -101,9 +102,6 @@ class SiamRPNTracker():
         bbox_center[1] = self.anchors_center[3] * pred_reg[1] + self.anchors_center[1]  # yc
         bbox_center[2] =              np.exp(pred_reg[2])* self.anchors_center[2]       #  w
         bbox_center[3] =              np.exp(pred_reg[3])* self.anchors_center[3]       #  h
-
-        # cut output value
-        # TODO:
 
         # penalty
         r = self._r(bbox_center[2], bbox_center[3])                     # (   5, 17, 17)

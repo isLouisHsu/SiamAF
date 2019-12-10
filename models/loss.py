@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-09 15:04:58
+@LastEditTime: 2019-12-10 16:08:57
 @Update: 
 '''
 import sys
@@ -140,7 +140,7 @@ class RpnLoss(nn.Module):
 
             # regression
             index = torch.nonzero(mask == 1).squeeze()
-            reg_pred = torch.index_select(                                  reg, 0, index)
+            reg_pred = torch.tanh(torch.index_select(reg, 0, index))
             anchor   = torch.index_select(self.anchor_center.to(gt_bbox.device), 0, index) # xc, yc, w, h
             if anchor.size(0) == 0:
                 loss_reg_i = torch.tensor(0.)
