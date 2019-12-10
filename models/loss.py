@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-10 16:08:57
+@LastEditTime: 2019-12-10 18:46:36
 @Update: 
 '''
 import sys
@@ -147,7 +147,7 @@ class RpnLoss(nn.Module):
             else:
                 gtc = torch.tensor(corner2center(gt))   # xc, yc, w, h
                 reg_gt   = encode(gtc, anchor)
-                loss_reg_i = self.l1(reg_pred, reg_gt)
+                loss_reg_i = self.mse(reg_pred, reg_gt)
             loss_reg += loss_reg_i
 
         loss_cls, loss_reg, acc_cls = list(map(lambda x: x / gt_bbox.size(0), [loss_cls, loss_reg, acc_cls]))
