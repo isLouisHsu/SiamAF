@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-11 16:16:53
+@LastEditTime: 2019-12-11 16:23:00
 @Update: 
 '''
 import sys
@@ -77,11 +77,11 @@ class RpnLoss(nn.Module):
         matched = torch.where((iou > 0.) & (iou < self.anchor_thr_low),  part, matched)
         matched = torch.where(iou > self.anchor_thr_high, positive, matched)
 
-        print(iou.max())
-        print("ignore:   ", (matched == -1).sum())
-        print("positive: ", (matched == 1).sum())
-        print("part:     ", (matched == 2).sum())
-        print("negative: ", (matched == 0).sum())
+        # print(iou.max())
+        # print("ignore:   ", (matched == -1).sum())
+        # print("positive: ", (matched == 1).sum())
+        # print("part:     ", (matched == 2).sum())
+        # print("negative: ", (matched == 0).sum())
 
         return matched
 
