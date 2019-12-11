@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-02 10:38:47
+@LastEditTime: 2019-12-11 10:37:05
 @Update: 
 '''
 import torch
@@ -14,7 +14,7 @@ from torch import nn
 
 # from roi_align import RoIAlign
 
-from .backbone import AlexNet, resnet50
+from .backbone import AlexNet, resnet22
 from .head import RpnHead, HeatmapHead
 
 class SiamRPN(nn.Module):
@@ -69,14 +69,16 @@ class SiamRPN(nn.Module):
         return pred_cls, pred_reg
 
 
+from roi_align import RoIAlign
+
 class SiamAF(nn.Module):
-    """ TODO:
+    """ 
     Attributes:
         self.z_f: {list[tensor(1, 256, h, w)]}
     Notes:
         - See more details about RoiAlign on https://github.com/longcw/RoIAlign.pytorch
     """
-    def __init__(self, backbone=resnet50, roi_size=None):
+    def __init__(self, backbone=resnet22(), roi_size=None):
         super(SiamAF, self).__init__()
         
         self.backbone = backbone
@@ -130,8 +132,8 @@ class SiamAF(nn.Module):
             z: {tensor(N, 3, 127, 127)}
             x: {tensor(N, 3, 255, 255)}
         Returns:
-            pred_cls: {tensor(N, n_anchor, h, w)}
-            pred_reg: {tensor(N, n_anchor, h, w)}
+            pred_cls: {tensor(N, 1, h, w)}
+            pred_reg: {tensor(N, 4, h, w)}
         """
         z_f = self.backbone(z)
         if self.roi is not None:
@@ -140,5 +142,8 @@ class SiamAF(nn.Module):
 
         x_f = self.backbone(x)
 
-        pred_cls, pred_reg = self.head(z_f, x_f)
+        pred_cls = []; pred_reg = []
+        for i, head in enumerate(self.head):
+            _cls, _reg = head(z_f[i], x_f[i])
+            pred_cls += [_cls]; pred_reg += [_reg]
         return pred_cls, pred_reg

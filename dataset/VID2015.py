@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-08 11:14:16
+@LastEditTime: 2019-12-11 13:55:18
 @Update: 
 '''
 import sys
@@ -45,7 +45,7 @@ class VID2015PairData(Dataset):
 
     def __init__(self, mode, 
                 template_size=127, search_size=255, frame_range=30, pad=[lambda w, h: (w + h) / 2],
-                blur=0, rotate=5, scale=0.05, color=1, flip=1):
+                blur=0, rotate=5, scale=0.05, color=1, flip=1, mshift=32):
 
         self.mode = mode
         self.template_size = template_size
@@ -58,11 +58,11 @@ class VID2015PairData(Dataset):
         self.scale  = scale
         self.color  = color
         self.flip   = flip
+        self.mshift = mshift
         
         self.transformer = transforms.Compose(
             [transforms.ToPILImage(), ] +
             ([transforms.ColorJitter(0.05, 0.05, 0.05, 0.05), ] if color > np.random.rand() else [])
-            + ([transforms.RandomHorizontalFlip(), ] if flip > np.random.rand() else [])
         )
         
         self._list_samples()
@@ -107,7 +107,7 @@ class VID2015PairData(Dataset):
 
         # --------- augmentation and crop -------
         template_image, template_bbox = self._augment_crop(template_image, template_bbox, self.template_size)
-        search_image,   search_bbox   = self._augment_crop(search_image,   search_bbox,   self.search_size)
+        search_image,   search_bbox   = self._augment_crop(search_image,   search_bbox,   self.search_size, self.mshift)
 
         # show_bbox(template_image, template_bbox, winname='[line116] template %d' % template_idx)
         # show_bbox(search_image, search_bbox, winname='[line117] search %d' % search_idx)
@@ -181,13 +181,16 @@ class VID2015PairData(Dataset):
 
         return annotations
 
-    def _augment_crop(self, im, bbox, size):
+    def _augment_crop(self, im, bbox, size, mshift=0):
         """
         Params:
             im:   {ndarray(H, W, C)}
-            bbox: {ndarray(4)}        x1, y1, x2, y2
+            bbox: {ndarray(4)}          x1, y1, x2, y2
+            crop_box: {ndarray(4)}      x1, y1, x2, y2
             size: {int}
         """
+        # show_bbox(im, bbox, winname='gt')
+
         imh, imw = im.shape[:-1]
         padval = im.mean(0).mean(0)
 
@@ -195,32 +198,34 @@ class VID2015PairData(Dataset):
         rows, cols = im.shape[:-1]
         rotate_rand = self.rotate * (np.random.rand() * 2. - 1)
         scale_rand  = self.scale  * (np.random.rand() * 2. - 1) + 1
-
-        # show_bbox(im, bbox, winname='[line199]')
-
         xc, yc, w, h = corner2center(bbox)
         M = cv2.getRotationMatrix2D((xc, yc), rotate_rand, scale_rand)
         im = cv2.warpAffine(im, M, (imw, imh), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
-
-        # show_bbox(im, bbox, winname='[line205]')
-
         bbox = np.array(center2corner(np.array([xc, yc, w * scale_rand, h * scale_rand])))
         xc, yc, w, h = corner2center(bbox)
-
-        # show_bbox(im, bbox, winname='[line210]')
+        # show_bbox(im, bbox, winname='scale & shift')
 
         # crop
+        shift_x = mshift * (np.random.rand() * 2 - 1); bbox[[0, 2]] += shift_x
+        shift_y = mshift * (np.random.rand() * 2 - 1); bbox[[1, 3]] += shift_y
         im, (scale, shift) = crop_square_according_to_bbox(im, bbox, size, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), return_param=True)
-        bbox[[0, 2]] -= shift[0]; bbox[[1, 3]] -= shift[1]; bbox *= scale
+        # show_bbox(im, bbox, winname='crop')
 
-        # transform
-        im = np.array(self.transformer(im))
+        # bbox scale & shift
+        bbox[[0, 2]] -= shift[0]; bbox[[1, 3]] -= shift[1]; bbox *= scale
+        bbox[[0, 2]] -= shift_x * scale; bbox[[1, 3]] -= shift_y * scale
         
+        # flip
+        randval = 0.6
+        if self.flip > randval and randval > 0.5:
+            im = im[:, ::-1]
+            bbox[[0, 2]] = bbox[[2, 0]]; bbox[[0, 2]] = size - bbox[[0, 2]] - 1
         # blur
         if self.blur > np.random.rand():
             im = gaussian_filter(im, sigma=(1, 1, 0))
-        
-        # show_bbox(im, bbox, winname='[line225]')
+        # transform
+        im = np.array(self.transformer(im))
+        # show_bbox(im, bbox, winname='out')
 
         return im, bbox
 

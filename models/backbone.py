@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 15:20:57
-@LastEditTime: 2019-12-02 10:38:54
+@LastEditTime: 2019-12-11 10:37:58
 @Update: 
 '''
 import torch
@@ -88,12 +88,12 @@ class ResNet(nn.Module):
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
                                        dilate=replace_stride_with_dilation[0])
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=2,
-                                       dilate=replace_stride_with_dilation[1])
+        # self.layer3 = self._make_layer(block, 256, layers[2], stride=2,
+        #                                dilate=replace_stride_with_dilation[1])
         # self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
         #                                dilate=replace_stride_with_dilation[2])
 
-        self.feature_size = [ch * block.expansion for ch in [64, 128, 256]]
+        self.feature_size = [ch * block.expansion for ch in [64, 128]]
 
         self._load_pretrain()
 
@@ -137,13 +137,13 @@ class ResNet(nn.Module):
 
         f1 = self.layer1(x)
         f2 = self.layer2(f1)
-        f3 = self.layer3(f2)
+        # f3 = self.layer3(f2)
         # f4 = self.layer4(f3)
 
-        return f1, f2, f3
+        return f1, f2
 
-def resnet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3])
+def resnet22():
+    return ResNet(Bottleneck, [3, 4])
 
 if __name__ == "__main__":
 
