@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-12 10:10:19
+@LastEditTime: 2019-12-12 10:19:05
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -65,7 +65,7 @@ configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
 configer.siamrpn.train.n_epoch = 120
-configer.siamrpn.train.resume = None
+configer.siamrpn.train.resume = '../ckpt/siamrpn.pkl'
 
 configer.siamrpn.tracker = edict()
 configer.siamrpn.anchor.stride         = configer.siamrpn.anchor.stride
