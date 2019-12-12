@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-12 10:19:05
+@LastEditTime: 2019-12-12 17:44:17
 @Update: 
 '''
 from easydict import EasyDict as edict
