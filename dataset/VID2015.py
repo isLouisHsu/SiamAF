@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-11 13:55:18
+@LastEditTime: 2019-12-13 15:18:25
 @Update: 
 '''
 import sys
@@ -113,8 +113,8 @@ class VID2015PairData(Dataset):
         # show_bbox(search_image, search_bbox, winname='[line117] search %d' % search_idx)
         
         # from config import configer
-        # from utils.box_utils import get_anchor_train, visualize_anchor
-        # center, corner = get_anchor_train(**configer.siamrpn.anchor)
+        # from utils.box_utils import get_anchor, visualize_anchor
+        # center, corner = get_anchor(**configer.siamrpn.anchor)
         # visualize_anchor(search_image, corner[:, :, 8, 8].T)
 
         # ------------ to tensor ----------------
