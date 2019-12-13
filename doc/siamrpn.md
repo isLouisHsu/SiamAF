@@ -28,14 +28,16 @@
 - 数据缩放至$[0, 1.]$；
 
 载入的原始图像如下
-![template_ori](../image/template_ori.jpg)
-
-![search_ori](../image/search_ori.jpg)
+- template
+    ![template_ori](../image/template_ori.jpg)
+- search
+    ![search_ori](../image/search_ori.jpg)
 
 截取图像如下
-![template_crop](../image/template_crop.jpg)
-
-![search_cro](../image/search_cro.jpg)
+- template
+    ![template_crop](../image/template_crop.jpg)
+- search
+    ![search_cro](../image/search_crop.jpg)
 
 ## Model
 
