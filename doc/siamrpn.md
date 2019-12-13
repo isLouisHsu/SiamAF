@@ -98,30 +98,30 @@
 
 1. 指定初始帧，与[dataset](#dataset)中裁剪template的方式一致，得到$z_{3 \times 127 \times 127}$，用网络提取其特征$\phi(z)$；
 2. 按初始帧中的边界框裁剪search得到$z_{3 \times 255 \times 255}$，经过特征提取、互相关运算得到$A^{cls}_{2k \times 17 \times 17}$与$A^{reg}_{4k \times 17 \times 17}$；
-3. 按下式计算预测边界框
+3. 按下式计算预测边界框$P_{4k \times 17 \times 17}$及其评分$score_{k \times 17 \times 17}$
     $$
     \begin{cases}
-    T_{cx} = A^{reg}[0] \times A_w + A_{cx} \\
-    T_{cy} = A^{reg}[1] \times A_h + A_{cy} \\
-    T_w = e^{A^{reg}[2]} \times A_w \\
-    T_h = e^{A^{reg}[3]} \times A_h 
-    \end{cases}, \text{shape}(4k, 17, 17)
+    P_{cx} = A^{reg}[0] \times A_w + A_{cx} \\
+    P_{cy} = A^{reg}[1] \times A_h + A_{cy} \\
+    P_w = e^{A^{reg}[2]} \times A_w \\
+    P_h = e^{A^{reg}[3]} \times A_h 
+    \end{cases}
     $$
 
-    $$ score = \text{softmax} (A^{cls}) [1], \text{shape}(k, 17, 17) $$
+    $$ score = \text{softmax} (A^{cls}) [1] $$
 
 4. 为减少干扰，增加尺寸惩罚
     $$ penalty = e^{k \times \max(\frac{r}{r'}, \frac{r'}{r}) \times \max(\frac{s}{s'}, \frac{s'}{s})} $$    
 
-    其中$r'$为上帧输出边界框长宽比$r'=\frac{w'}{h'}$，$s'$为上帧输出边界框尺寸$s'=\sqrt{(w + p) (h + p)}, p=\frac{w+h}{2}$，$r,s$为预测输出的长宽比与尺寸，那么惩罚后的各框评分为
-    $$ pscore = score \times penalty, \text{shape}(k, 17, 17) $$
+    其中$r'$为上帧输出边界框长宽比$r'=\frac{w'}{h'}$，$s'$为上帧输出边界框尺寸$s'=\sqrt{(w + p) (h + p)}, p=\frac{w+h}{2}$，$r,s$为预测输出的长宽比与尺寸，那么惩罚后的各框评分为$pscore_{k \times 17 \times 17}$
+    $$ pscore = score \times penalty $$
 
 5. 增加hamming窗，减少边界影响
 
     hamming窗可视化如下
     ![hamming_window](../image/hamming_window.png)
 
-    $$ pscore = pscore \times hamming, \text{shape}(k, 17, 17) $$
+    $$ pscore = pscore \times hamming $$
 
 6. 选择评分最高的作为待搜索帧的边界框
 
