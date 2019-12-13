@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-13 11:26:22
+@LastEditTime: 2019-12-13 11:55:22
 @Update: 
 '''
 import sys
@@ -156,17 +156,13 @@ class RpnLoss(nn.Module):
             acc_cls += (cls_pred_pos.sum() + cls_pred_neg.sum()).double() / (cls_pred_pos.numel() + cls_pred_neg.numel())
 
             # regression
-            reg = reg.view(4, -1).t()
-            index = torch.nonzero(mask == 1).squeeze()
-            reg_pred = torch.index_select(reg, 0, index)
-            anchor   = torch.index_select(self.anchor_center.to(gt_bbox.device), 0, index) # xc, yc, w, h
-            if anchor.size(0) == 0:
-                loss_reg_i = torch.tensor(0.)
-            else:
-                gtc = torch.tensor(corner2center(gt))   # xc, yc, w, h
-                reg_gt = encode(gtc, anchor)
-                loss_reg_i = self.l1(reg_pred, reg_gt)
-            loss_reg += loss_reg_i
+            reg_gt = encode(
+                torch.tensor(corner2center(gt)), self.anchor_center.to(gt_bbox.device)).\
+                    view(*reg.size()[1:], -1).permute(3, 0, 1, 2)   # (4, 5, 17, 17)
+            diff = (reg - reg_gt).abs().sum(dim=0).view(-1)         # 5 * 17 * 17
+            mask_p = (mask == 1).float()
+            mask_p = mask_p / (mask_p.sum() + 1e-7)
+            loss_reg += (diff * mask_p).sum()
 
         loss_cls, loss_reg, acc_cls = list(map(lambda x: x / gt_bbox.size(0), [loss_cls, loss_reg, acc_cls]))
         loss_total = self.cls_weight * loss_cls + self.reg_weight * loss_reg
