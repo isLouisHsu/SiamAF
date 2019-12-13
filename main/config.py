@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-13 11:26:54
+@LastEditTime: 2019-12-13 11:28:09
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -54,19 +54,19 @@ configer.siamrpn.loss.n_neg = 48
 configer.siamrpn.loss.r_pos = 2
 
 configer.siamrpn.optimizer = edict()
-configer.siamrpn.optimizer.lr = 0.0001
+configer.siamrpn.optimizer.lr = 0.001
 configer.siamrpn.optimizer.weight_decay = 5e-4
 
 configer.siamrpn.scheduler = edict()
 configer.siamrpn.scheduler.gamma = 0.9
 
 configer.siamrpn.train = edict()
-configer.siamrpn.train.batch_size = 32
+configer.siamrpn.train.batch_size = 48
 configer.siamrpn.train.clip_grad  = 10
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
-configer.siamrpn.train.n_epoch = 120
+configer.siamrpn.train.n_epoch = 80
 configer.siamrpn.train.resume = None
 
 configer.siamrpn.tracker = edict()
