@@ -120,7 +120,7 @@ def visualize_anchor(im, anchor):
     cv2.imshow("visualize anchor", im)
     cv2.waitKey(0)
 
-def encode(location, anchor_center):
+def encode(location, anchor_center, eps=1e-7):
     """
     Params:
         location:       {tensor(4), double} xc, yc,  w,  h
@@ -137,8 +137,8 @@ def encode(location, anchor_center):
     
     offset[:, 0] = (location[0] - anchor_center[:, 0]) / anchor_center[:, 2]
     offset[:, 1] = (location[1] - anchor_center[:, 1]) / anchor_center[:, 3]
-    offset[:, 2] = torch.log(location[2] / anchor_center[:, 2])
-    offset[:, 3] = torch.log(location[3] / anchor_center[:, 3])
+    offset[:, 2] = torch.log(location[2] / (anchor_center[:, 2] + eps) + eps)
+    offset[:, 3] = torch.log(location[3] / (anchor_center[:, 3] + eps) + eps)
 
     return offset
 

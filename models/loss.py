@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-11 16:23:00
+@LastEditTime: 2019-12-13 11:26:22
 @Update: 
 '''
 import sys
@@ -23,13 +23,15 @@ class RpnLoss(nn.Module):
     template_size=127
     search_size=255 
     feature_size=17
+    stride = 8
 
-    def __init__(self, anchors, cls_weight=1., reg_weight=1., pos_thr=0.9,
-            anchor_thr_low=0.3, anchor_thr_high=0.6, n_pos=16, n_neg=48):
+    def __init__(self, anchors, cls_weight=1., reg_weight=1., ct_weight=.1, pos_thr=0.9,
+            anchor_thr_low=0.3, anchor_thr_high=0.6, n_pos=16, n_neg=48, r_pos=2):
         super(RpnLoss, self).__init__()
 
         self.cls_weight = cls_weight
         self.reg_weight = reg_weight
+        self.ct_weight  = ct_weight
         
         self.pos_thr = pos_thr
         self.anchor_thr_low  = anchor_thr_low
@@ -37,15 +39,14 @@ class RpnLoss(nn.Module):
 
         self.n_pos = n_pos
         self.n_neg = n_neg
+        self.r_pos  = r_pos
 
         self.anchor_center, self.anchor_corner = list(
                 map(lambda x: torch.from_numpy(x.reshape(4, -1).T).float().contiguous(), anchors))
         
-        self.bce = nn.BCEWithLogitsLoss()
         self.crossent = nn.CrossEntropyLoss()
         self.l1  = nn.L1Loss()
         self.smoothl1 = nn.SmoothL1Loss()
-        self.mse = nn.MSELoss()
 
     def _match(self, gt_bbox):
         """
@@ -98,17 +99,29 @@ class RpnLoss(nn.Module):
 
         matched = self._match(gt_bbox)     # (N, A)
         for i, (cls, reg, gt, mask) in enumerate(zip(pred_cls, pred_reg, gt_bbox, matched)):
-            cls = cls.view(2, -1).t(); reg = reg.view(4, -1).t()
+
+            # center
+            x1, y1, x2, y2 = gt; cx, cy = (x1 + x2) / 2., (y1 + y2) / 2.
+            cx, cy = list(map(lambda x: (x - self.template_size // 2) // self.stride, [cx, cy]))
+            x, y = np.meshgrid(np.arange(self.feature_size) - cx.cpu().numpy(),
+                        np.arange(self.feature_size) - cy.cpu().numpy())
+            dist_to_center = np.abs(x) + np.abs(y)
+            pred_center = cls.sum(dim=1).view(2, -1).t()
+            gt_center = torch.from_numpy(
+                np.where(dist_to_center <= self.r_pos, 
+                        np.ones_like(y), np.zeros_like(y))).to(cls.device).view(-1).long()
+            loss_ct_i = self.crossent(pred_center, gt_center)
             
             # classification
+            cls = cls.view(2, -1).t()
             cls_pred_neg  = torch.index_select(cls, 0, torch.nonzero(mask == 0).view(-1))
             cls_pred_pos  = torch.index_select(cls, 0, torch.nonzero(mask == 1).view(-1))
             cls_pred_part = torch.index_select(cls, 0, torch.nonzero(mask == 2).view(-1))
             n_pos, n_neg, n_part  = cls_pred_pos.size(0), cls_pred_neg.size(0), cls_pred_part.size(0)
             if n_pos == 0:
                 index = np.arange(n_neg); np.random.shuffle(index)
-                cls_pred_neg = cls_pred_neg[index][:self.n_neg]     # (n_pos, 2)
-                cls_gt_neg   = torch.zeros(self.n_neg, dtype=torch.long).to(cls_pred_neg.device) # (n_pos, )
+                cls_pred_neg = cls_pred_neg[index][:self.n_pos + self.n_neg]     # (n_pos, 2)
+                cls_gt_neg   = torch.zeros(self.n_pos + self.n_neg, dtype=torch.long).to(cls_pred_neg.device) # (n_pos, )
 
                 loss_cls_i = self.crossent(cls_pred_neg, cls_gt_neg)
             else:
@@ -117,21 +130,24 @@ class RpnLoss(nn.Module):
                 cls_pred_pos = cls_pred_pos[index][:self.n_pos]
                 cls_gt_pos   = torch.ones(cls_pred_pos.size(0), dtype=torch.long).to(cls_pred_pos.device)
                 
-                ratio = self.n_neg / self.n_pos
-                # part
+                # neg
+                n_neg_total = self.n_pos + self.n_neg - cls_pred_pos.size(0)
+                ## part
                 index = np.arange(n_part); np.random.shuffle(index)
-                cls_pred_part = cls_pred_part[index][:int(n_pos * ratio * (n_part / (n_neg + n_part)))]
+                cls_pred_part = cls_pred_part[index][:int(n_neg_total * (n_part / (n_neg + n_part)))]
                 cls_gt_part   = torch.zeros(cls_pred_part.size(0), dtype=torch.long).to(cls_pred_part.device)
 
-                # neg
+                ## neg
                 index = np.arange(n_neg); np.random.shuffle(index)
-                cls_pred_neg = cls_pred_neg[index][:int(n_pos * ratio * (n_neg / (n_neg + n_part)))]
-                cls_gt_neg   = torch.zeros(cls_pred_neg.size(0), dtype=torch.long).to(cls_pred_neg.device)
+                cls_pred_neg  = cls_pred_neg[index][:int(n_neg_total - cls_pred_part.size(0))]
+                cls_gt_neg    = torch.zeros(cls_pred_neg.size(0), dtype=torch.long).to(cls_pred_neg.device)
                 
-                loss_cls_i = self.crossent(
-                        torch.cat([cls_pred_pos, cls_pred_part, cls_pred_neg]), 
-                        torch.cat([  cls_gt_pos,   cls_gt_part,  cls_gt_neg]))
-            loss_cls += loss_cls_i
+                loss_cls_i = self.crossent(cls_pred_pos, cls_gt_pos) * 0.5 + \
+                             self.crossent(
+                                    torch.cat([cls_pred_part, cls_pred_neg]), 
+                                    torch.cat([cls_gt_part,   cls_gt_neg  ])) * 0.5
+
+            loss_cls += (loss_cls_i + self.ct_weight * loss_ct_i)
 
             # accuracy
             cls = torch.softmax(cls, dim=1)
@@ -140,6 +156,7 @@ class RpnLoss(nn.Module):
             acc_cls += (cls_pred_pos.sum() + cls_pred_neg.sum()).double() / (cls_pred_pos.numel() + cls_pred_neg.numel())
 
             # regression
+            reg = reg.view(4, -1).t()
             index = torch.nonzero(mask == 1).squeeze()
             reg_pred = torch.index_select(reg, 0, index)
             anchor   = torch.index_select(self.anchor_center.to(gt_bbox.device), 0, index) # xc, yc, w, h
@@ -153,6 +170,7 @@ class RpnLoss(nn.Module):
 
         loss_cls, loss_reg, acc_cls = list(map(lambda x: x / gt_bbox.size(0), [loss_cls, loss_reg, acc_cls]))
         loss_total = self.cls_weight * loss_cls + self.reg_weight * loss_reg
+        
         return loss_total, loss_cls, loss_reg, acc_cls
 
 

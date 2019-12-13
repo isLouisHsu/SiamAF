@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-12 17:44:17
+@LastEditTime: 2019-12-13 11:26:54
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -43,13 +43,15 @@ configer.siamrpn.net.num_anchor   = \
     len(configer.siamrpn.anchor.anchor_scales)
 
 configer.siamrpn.loss = edict()
-configer.siamrpn.loss.cls_weight = .1
+configer.siamrpn.loss.cls_weight = 1.
 configer.siamrpn.loss.reg_weight = 1.
+configer.siamrpn.loss.ct_weight  = .01
 configer.siamrpn.loss.pos_thr    = 0.9
 configer.siamrpn.loss.anchor_thr_low  = 0.3
 configer.siamrpn.loss.anchor_thr_high = 0.6
 configer.siamrpn.loss.n_pos = 16
 configer.siamrpn.loss.n_neg = 48
+configer.siamrpn.loss.r_pos = 2
 
 configer.siamrpn.optimizer = edict()
 configer.siamrpn.optimizer.lr = 0.0001
@@ -65,7 +67,7 @@ configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
 configer.siamrpn.train.n_epoch = 120
-configer.siamrpn.train.resume = '../ckpt/siamrpn.pkl'
+configer.siamrpn.train.resume = None
 
 configer.siamrpn.tracker = edict()
 configer.siamrpn.anchor.stride         = configer.siamrpn.anchor.stride
