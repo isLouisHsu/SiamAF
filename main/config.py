@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-13 11:56:27
+@LastEditTime: 2019-12-13 20:55:57
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -45,7 +45,7 @@ configer.siamrpn.net.num_anchor   = \
 configer.siamrpn.loss = edict()
 configer.siamrpn.loss.cls_weight = 1.
 configer.siamrpn.loss.reg_weight = 1.
-configer.siamrpn.loss.ct_weight  = .01
+configer.siamrpn.loss.ct_weight  = .1
 configer.siamrpn.loss.pos_thr    = 0.9
 configer.siamrpn.loss.anchor_thr_low  = 0.3
 configer.siamrpn.loss.anchor_thr_high = 0.6
@@ -78,7 +78,7 @@ configer.siamrpn.tracker.feature_size  = configer.siamrpn.anchor.feature_size
 configer.siamrpn.tracker.center_size   = 7
 configer.siamrpn.tracker.penalty_k     = 0.055
 configer.siamrpn.tracker.window_factor = 0.42
-configer.siamrpn.tracker.momentum      = 0.295
+configer.siamrpn.tracker.momentum      = 0.005
 
 
 # ------------------ SiamAF ------------------

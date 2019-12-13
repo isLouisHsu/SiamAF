@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-12 10:04:23
+@LastEditTime: 2019-12-13 20:49:49
 @Update: 
 '''
 import sys
@@ -64,7 +64,7 @@ class SiamRPNTracker():
         
         template_image = crop_square_according_to_bbox(
             template_image, bbox, self.template_size, self.pad)
-        show_bbox(template_image, bbox, winname='template_image')
+        # show_bbox(template_image, bbox, winname='template_image')
         
         template_tensor = self._ndarray2tensor(template_image)
         self.net.template(template_tensor)
@@ -88,7 +88,7 @@ class SiamRPNTracker():
                 search_image, self.state.corner, self.search_size, lambda w, h: self.pad(w, h) * 2, return_param=True)
 
         # show_bbox(search_image, self.state.corner, winname='search_image')
-        show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop')
+        # show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop')
         
         with torch.no_grad(): 
             pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_crop))   
@@ -114,18 +114,18 @@ class SiamRPNTracker():
         pscore = self.window * self.window_factor + \
                             pscore * (1 - self.window_factor)           # (   5, 17, 17)
 
-        fig = plt.figure()
-        for i_anchor in range(self.num_anchor):
-            fig.add_subplot(2, 5, i_anchor + 1)
-            plt.imshow(score[i_anchor])
-            fig.add_subplot(2, 5, i_anchor + 6)
-            plt.imshow(pscore[i_anchor])
-        plt.show()
+        # fig = plt.figure()
+        # for i_anchor in range(self.num_anchor):
+        #     fig.add_subplot(2, 5, i_anchor + 1)
+        #     plt.imshow(score[i_anchor])
+        #     fig.add_subplot(2, 5, i_anchor + 6)
+        #     plt.imshow(pscore[i_anchor])
+        # plt.show()
 
         # pick the highest score
         a, r, c = np.unravel_index(pscore.argmax(), pscore.shape)
         res_center = bbox_center[:, a, r, c]; score = score[a, r, c]
-        show_bbox(search_crop, np.array(center2corner(res_center)), winname='search_crop_output')
+        # show_bbox(search_crop, np.array(center2corner(res_center)), winname='search_crop_output')
 
         # ------------------------------------------------------
         # get back!
@@ -133,11 +133,11 @@ class SiamRPNTracker():
         res_center[:2] += shift     # shift, (xc, yc)
         
         # momentum
-        momentum = penalty[a, r, c] * score * self.momentum
+        momentum = pscore[a, r, c] * self.momentum
         res_center[2:] = res_center[2:] * momentum + self.state.center[2:] * (1 - momentum)     #  w,  h
         
         res_corner = np.array(center2corner(res_center))
-        show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output')
+        # show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output')
 
         self._update_state(res_corner)
 
