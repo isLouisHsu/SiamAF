@@ -284,15 +284,20 @@ def show_bbox(im, bbox, score=None, points=None, winname="", waitkey=0):
         points: {ndarray(M, 2)}
     """
     image = im.copy()
-    bbox = bbox.reshape(-1, 4).astype(np.int)
-    for x1, y1, x2, y2 in bbox:
-        cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 1)
+
+    if not (bbox is None or bbox.size < 4):
+        bbox = bbox.reshape(-1, 4).astype(np.int)
+        for x1, y1, x2, y2 in bbox:
+            cv2.rectangle(image, (x1, y1), (x2, y2), (0, 0, 255), 1)
+
     if score is not None:
         pass
+    
     if points is not None:
         points = points.reshape(-1, 2).astype(np.int)
         for x, y in points:
             cv2.circle(image, (x, y), 2, (0, 255, 255), 3)
+    
     cv2.imshow(winname, image)
     cv2.waitKey(waitkey)
 

@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-13 20:56:17
+@LastEditTime: 2019-12-16 17:49:40
 @Update: 
 '''
 import os
@@ -154,27 +154,32 @@ def testSequence(configer):
     net.load_state_dict(
         torch.load(configer.siamrpn.train.ckpt, map_location='cpu'))
 
-    tracker = SiamRPNTracker(anchors_center=anchors_center, net=net, device=device, **configer.siamrpn.tracker)
+    tracker = SiamRPNTracker(anchor=configer.siamrpn.anchor, net=net, device=device, **configer.siamrpn.tracker)
 
     for i_data, (impaths, annos, ids) in enumerate(dataset):
 
+        # if i_data < 3: continue
+        if len(ids) == 0: continue
+
         for i_id, obj_id in enumerate(ids):
+
             anno = list(map(lambda x: x[obj_id] if obj_id in x.keys() else None, annos))
 
-            for i_frame, (impath, bbox) in enumerate(zip(impaths, anno)):
+            for i_frame, (impath, bbox_gt) in enumerate(zip(impaths, anno)):
                 
                 image = cv2.imread(impath, cv2.IMREAD_COLOR)
-                if bbox is not None and not tracker.template_is_setted():
-                    tracker.set_template(image, bbox)
+                if bbox_gt is not None and not tracker.template_is_setted():
+                    tracker.set_template(image, bbox_gt)
                     continue
 
-                show_bbox(image, bbox, waitkey=20, winname='gt')
-                bbox, _ = tracker.track(image)
-                show_bbox(image, bbox, waitkey=20, winname='pred')
+                bbox_pred, _ = tracker.track_crop_image(image)
+
+                show_bbox(image, bbox_gt, waitkey=5, winname='gt')
+                show_bbox(image, bbox_pred, waitkey=5, winname='pred')
             
             tracker.delete_template()
 
 if __name__ == '__main__':
 
-    train(configer)
-    # testSequence(configer)
+    # train(configer)
+    testSequence(configer)

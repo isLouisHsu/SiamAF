@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-13 20:49:49
+@LastEditTime: 2019-12-16 17:27:58
 @Update: 
 '''
 import sys
@@ -22,16 +22,16 @@ import torch
 from .network import SiamRPN
 from utils.box_utils import (
     crop_square_according_to_bbox, 
-    get_hamming_window,
+    get_hamming_window, naive_anchors, pair_anchors,
     center2corner, corner2center, 
     nms, 
     visualize_anchor, show_bbox)
 
 class SiamRPNTracker():
 
-    def __init__(self, anchors_center, net, device, 
+    def __init__(self, net, device, anchor,
                 template_size=127, search_size=255, feature_size=17, center_size=7,
-                stride=8, pad=[lambda w, h: (w + h) / 2],
+                pad=[lambda w, h: (w + h) / 2],
                 penalty_k=1.0, window_factor=0.42, momentum=0.295):
 
         self.device = device
@@ -41,11 +41,12 @@ class SiamRPNTracker():
         self.search_size   = search_size
         self.feature_size  = feature_size
         self.center_size   = center_size
-        self.stride        = stride
         self.pad = pad[0]
 
-        self.anchors_center = anchors_center
-        self.num_anchor = self.anchors_center.shape[1]
+        self.anchor = anchor
+        self.num_anchor = len(anchor.anchor_ratios) * len(anchor.anchor_scales)
+        self.anchor_naive = naive_anchors(anchor.anchor_ratios, anchor.anchor_scales, anchor.stride)
+        self.anchors_center, _ = pair_anchors(self.anchor_naive, (feature_size, feature_size), search_size, feature_size, anchor.stride)
 
         self.penalty_k  = penalty_k
         self.window_factor = window_factor
@@ -77,12 +78,13 @@ class SiamRPNTracker():
 
         return self.net.z_f is not None
 
-    def track(self, search_image):
+    def track_crop_image(self, search_image):
         """
         Params:
             template_image: {ndarray(H, W, C)}
         Returns:
-            bbox: {ndarray(N, 4)}
+            res_corner: {ndarray(N, 4)}
+            score: {ndarray(N)}
         """
         search_crop, (scale, shift) = crop_square_according_to_bbox(
                 search_image, self.state.corner, self.search_size, lambda w, h: self.pad(w, h) * 2, return_param=True)
@@ -138,6 +140,60 @@ class SiamRPNTracker():
         
         res_corner = np.array(center2corner(res_center))
         # show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output')
+
+        self._update_state(res_corner)
+
+        return res_corner, score
+
+    def track_whole_image(self, search_image):
+        """
+        Params:
+            template_image: {ndarray(H, W, C)}
+        Returns:
+            res_corner: {ndarray(N, 4)}
+            score: {ndarray(N)}
+        """
+        with torch.no_grad(): 
+            pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_image))   
+            score = torch.softmax(pred_cls.squeeze(), dim=0).cpu().numpy()[1]  # (   5, h, w)
+            pred_reg = pred_reg.squeeze().cpu().numpy()                 # (4, 5, h, w)
+
+        anchors_center, _ = pair_anchors(self.anchor_naive, 
+                score.shape[1:], self.search_size, self.feature_size, self.anchor.stride)
+                
+        # refine
+        bbox_center    = np.zeros_like(pred_reg)                        # (4, 5, h, w)
+        bbox_center[0] = anchors_center[2] * pred_reg[0] + anchors_center[0]  # xc
+        bbox_center[1] = anchors_center[3] * pred_reg[1] + anchors_center[1]  # yc
+        bbox_center[2] =              np.exp(pred_reg[2])* anchors_center[2]       #  w
+        bbox_center[3] =              np.exp(pred_reg[3])* anchors_center[3]       #  h
+
+        # penalty
+        r = self._r(bbox_center[2], bbox_center[3])                     # (   5, h, w)
+        s = self._s(bbox_center[2], bbox_center[3])                     # (   5, h, w)
+        pr = np.maximum(r / self.state.r, self.state.r / r)             # (   5, h, w)
+        ps = np.maximum(s / self.state.s, self.state.s / s)             # (   5, h, w)
+        penalty = np.exp(- (pr * ps - 1) * self.penalty_k)              # (   5, h, w)
+        pscore = score * penalty                                        # (   5, h, w)
+
+        # fig = plt.figure()
+        # for i_anchor in range(self.num_anchor):
+        #     fig.add_subplot(2, 5, i_anchor + 1)
+        #     plt.imshow(score[i_anchor])
+        #     fig.add_subplot(2, 5, i_anchor + 6)
+        #     plt.imshow(pscore[i_anchor])
+        # plt.show()
+
+        # pick the highest score
+        a, r, c = np.unravel_index(pscore.argmax(), pscore.shape)
+        res_center = bbox_center[:, a, r, c]; score = score[a, r, c]
+
+        # momentum
+        momentum = pscore[a, r, c] * self.momentum
+        res_center[2:] = res_center[2:] * momentum + self.state.center[2:] * (1 - momentum)     #  w,  h
+        
+        res_corner = np.array(center2corner(res_center))
+        # show_bbox(search_image, res_corner, score, anchors_center[:2, a, r, c], winname='search_image_output(with anchor)')
 
         self._update_state(res_corner)
 

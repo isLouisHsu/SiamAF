@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-13 11:55:22
+@LastEditTime: 2019-12-16 14:03:57
 @Update: 
 '''
 import sys
@@ -175,7 +175,7 @@ class HeatmapLoss(nn.Module):
     template_size=127
     search_size=255 
 
-    def __init__(self, cls_weight=1., reg_weight=1., stride=[4, 8], sigma=1.):
+    def __init__(self, cls_weight=1., reg_weight=1., stride=[4, 8], sigma=.2):
         super(HeatmapLoss, self).__init__()
 
         self.cls_weight = cls_weight
@@ -185,12 +185,31 @@ class HeatmapLoss(nn.Module):
         
         self.mse = nn.MSELoss()
     
-    def _gaussian(self, center):
+    def _heatmap(self, size, mu, sigma):
         """
         Params:
-            center: {ndarray(2)}
+            size:   {int}
+            mu, sigma: {ndarray(2)}
+        Returns:
+            z: {ndarray(size, size)}
         """
-        pass
+        gaussian = lambda x, u, s: np.exp(- ((x - u) / s) ** 2 / 2) / (np.sqrt(2 * np.pi) * s)
+        x = np.arange(size); z1 = gaussian(x, mu[1], sigma[1]); z2 = gaussian(x, mu[0], sigma[0])
+        z = np.outer(z1, z2)
+
+        # print(mu, sigma)
+        # print(sigma / self.sigma)
+        # print(z.sum())
+        # from matplotlib import pyplot as plt
+        # # plt.figure()
+        # # plt.plot(z1)
+        # # plt.figure()
+        # # plt.plot(z2)
+        # plt.figure()
+        # plt.imshow(z)
+        # plt.show()
+        
+        return z
 
     def forward(self, pred_cls, pred_reg, gt_bbox):
         """
@@ -203,32 +222,24 @@ class HeatmapLoss(nn.Module):
         """
         loss_cls = 0; loss_reg = 0
 
-        for i, (cls_pd, reg_pd, s) in enumerate(zip(pred_cls, pred_reg, self.stride)):
+        for j, (cls_pd, reg_pd, s) in enumerate(zip(pred_cls, pred_reg, self.stride)):
             
-            cls_gt = torch.zeros_like(cls_pd)
-            reg_gt = torch.zeros_like(reg_pd)
-            
-            for j, gt in enumerate(gt_bbox):
-                x1, y1, x2, y2 = gt.cpu().numpy() - (self.search_size - self.template_size) // 2
-                cx = 0.5 * (x1 + x2); cy = 0.5 * (y1 + y2)
+            for i, (gt_i, cls_i, reg_i) in enumerate(zip(gt_bbox, cls_pd, reg_pd)):
+
+                x1, y1, x2, y2 = gt_i.cpu().numpy() - (self.search_size - self.template_size) // 2
+                cx, cy = 0.5 * (x1 + x2), 0.5 * (y1 + y2); w, h = x2 - x1, y2 - y1
                 
-                self._gaussian(np.array(cx, cy))    # TODO:
+                mu = np.array([cx / s, cy / s]); sigma = self.sigma * np.array([w / s, h / s])
+                cls_gt_i = self._heatmap(cls_i.size(-1), mu, sigma)
+                cls_gt_i = torch.from_numpy(cls_gt_i).unsqueeze(0).to(cls_i.device).float()
+                loss_cls_i = self.mse(cls_i / cls_i.sum(), cls_gt_i)
+
+                
 
                 pass
-            N, _, feature_size, _ = cls.size()
-            center_size = (feature_size - 1) * s
+
+            # N, _, feature_size, _ = cls.size()
+            # center_size = (feature_size - 1) * s
             
             pass
     
-
-if __name__ == "__main__":
-    
-    loss = RpnLoss(get_anchor_train())
-
-    n, a, h, w = 2, 5, 17, 17
-    pred_cls, pred_reg = torch.sigmoid(torch.rand(n, a, h, w)), torch.rand(n, 4, a, h, w)
-    gt_bbox = torch.tensor([
-        [70., 111., 179., 143.],
-        [75., 111., 181., 143.],
-    ], dtype=torch.double)
-    loss(pred_cls, pred_reg, gt_bbox)

@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime: 2019-12-13 15:18:25
+@LastEditTime: 2019-12-16 14:45:05
 @Update: 
 '''
 import sys
@@ -257,7 +257,11 @@ class VID2015SequenceData(VID2015PairData):
             annopath_i = os.path.join(annopath, frame)
             impaths += [datapath_i]; annos += [self._read_annotation_xml(annopath_i)]
 
-        ids = list(np.unique(list(map(lambda x: list(x.keys()), annos))))
+        ids = []
+        for anno in annos:
+            for id in anno.keys():
+                if id not in ids:
+                    ids += [id]
 
         return impaths, annos, ids
         
@@ -265,10 +269,10 @@ if __name__ == '__main__':
 
     pass
 
-    dataset = VID2015PairData('val')
-    # for i in range(len(dataset)): dataset.vis(i)
-    for i, (template, template_bbox, search, search_bbox) in enumerate(dataset):
-        pass
+    # dataset = VID2015PairData('val')
+    # # for i in range(len(dataset)): dataset.vis(i)
+    # for i, (template, template_bbox, search, search_bbox) in enumerate(dataset):
+    #     pass
     
     dataset = VID2015SequenceData('val')
     for i, data in enumerate(dataset):
