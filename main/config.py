@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-16 19:36:18
+@LastEditTime: 2019-12-16 19:45:04
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -54,7 +54,7 @@ configer.siamrpn.loss.n_neg = 48
 configer.siamrpn.loss.r_pos = 2
 
 configer.siamrpn.optimizer = edict()
-configer.siamrpn.optimizer.lr = 0.01
+configer.siamrpn.optimizer.lr = 0.001
 configer.siamrpn.optimizer.weight_decay = 5e-4
 
 configer.siamrpn.scheduler = edict()
