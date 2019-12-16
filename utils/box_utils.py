@@ -327,7 +327,6 @@ def crop_square_according_to_bbox(im, bbox, size=None, pad=None, return_param=Fa
     im = cv2.warpAffine(im, M, (a, a), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
     im = cv2.resize(im, (size, size)) if size is not None else im
 
-    
     if return_param:
         scale = size / a; shift = np.array([x1, y1])
         return im, (scale, shift)

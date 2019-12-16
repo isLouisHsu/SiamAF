@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-16 14:03:57
+@LastEditTime: 2019-12-16 19:27:08
 @Update: 
 '''
 import sys
@@ -234,7 +234,7 @@ class HeatmapLoss(nn.Module):
                 cls_gt_i = torch.from_numpy(cls_gt_i).unsqueeze(0).to(cls_i.device).float()
                 loss_cls_i = self.mse(cls_i / cls_i.sum(), cls_gt_i)
 
-                
+                # TODO:   
 
                 pass
 

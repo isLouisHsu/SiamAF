@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-16 17:27:58
+@LastEditTime: 2019-12-16 19:27:26
 @Update: 
 '''
 import sys
@@ -55,6 +55,8 @@ class SiamRPNTracker():
         self.window = get_hamming_window(feature_size, self.num_anchor)
         self.state = edict()
 
+        self.template_scale = None
+
     def set_template(self, template_image, bbox):
         """
         Params:
@@ -63,8 +65,8 @@ class SiamRPNTracker():
         """
         self._update_state(bbox)
         
-        template_image = crop_square_according_to_bbox(
-            template_image, bbox, self.template_size, self.pad)
+        template_image, (self.template_scale, _) = crop_square_according_to_bbox(
+            template_image, bbox, self.template_size, self.pad, return_param=True)
         # show_bbox(template_image, bbox, winname='template_image')
         
         template_tensor = self._ndarray2tensor(template_image)
@@ -78,7 +80,20 @@ class SiamRPNTracker():
 
         return self.net.z_f is not None
 
-    def track_crop_image(self, search_image):
+    def track(self, search_image, mode='crop'):
+        """
+        Params:
+            template_image: {ndarray(H, W, C)}
+        Returns:
+            res_corner: {ndarray(N, 4)}
+            score: {ndarray(N)}
+        """
+        if mode == 'crop':
+            return self._track_crop_image(search_image)
+        elif mode == 'whole':
+            return self._track_whole_image(search_image)
+
+    def _track_crop_image(self, search_image):
         """
         Params:
             template_image: {ndarray(H, W, C)}
@@ -145,7 +160,7 @@ class SiamRPNTracker():
 
         return res_corner, score
 
-    def track_whole_image(self, search_image):
+    def _track_whole_image(self, search_image):
         """
         Params:
             template_image: {ndarray(H, W, C)}
@@ -153,8 +168,14 @@ class SiamRPNTracker():
             res_corner: {ndarray(N, 4)}
             score: {ndarray(N)}
         """
+        h, w, _ = search_image.shape
+        h, w = list(map(lambda x: int(x * self.template_scale), [h, w]))
+        search_resize = cv2.resize(search_image, (w, h))
+
+        # show_bbox(search_resize, None, winname='search_resize')
+
         with torch.no_grad(): 
-            pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_image))   
+            pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_resize))   
             score = torch.softmax(pred_cls.squeeze(), dim=0).cpu().numpy()[1]  # (   5, h, w)
             pred_reg = pred_reg.squeeze().cpu().numpy()                 # (4, 5, h, w)
 
@@ -187,6 +208,7 @@ class SiamRPNTracker():
         # pick the highest score
         a, r, c = np.unravel_index(pscore.argmax(), pscore.shape)
         res_center = bbox_center[:, a, r, c]; score = score[a, r, c]
+        res_corner = np.array(center2corner(res_center / self.template_scale))
 
         # momentum
         momentum = pscore[a, r, c] * self.momentum

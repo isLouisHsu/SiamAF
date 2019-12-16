@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-16 17:50:19
+@LastEditTime: 2019-12-16 19:36:18
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -18,7 +18,7 @@ configer.siamrpn = edict()
 configer.siamrpn.vid = edict()
 configer.siamrpn.vid.template_size = 127
 configer.siamrpn.vid.search_size   = 255
-configer.siamrpn.vid.frame_range   = 20
+configer.siamrpn.vid.frame_range   = 100
 configer.siamrpn.vid.pad = lambda w, h: (w + h) / 2,
 configer.siamrpn.vid.blur= 1
 configer.siamrpn.vid.rotate = 5
@@ -44,7 +44,7 @@ configer.siamrpn.net.num_anchor   = \
 
 configer.siamrpn.loss = edict()
 configer.siamrpn.loss.cls_weight = 1.
-configer.siamrpn.loss.reg_weight = 1.
+configer.siamrpn.loss.reg_weight = .7
 configer.siamrpn.loss.ct_weight  = .1
 configer.siamrpn.loss.pos_thr    = 0.9
 configer.siamrpn.loss.anchor_thr_low  = 0.3
@@ -54,7 +54,7 @@ configer.siamrpn.loss.n_neg = 48
 configer.siamrpn.loss.r_pos = 2
 
 configer.siamrpn.optimizer = edict()
-configer.siamrpn.optimizer.lr = 0.001
+configer.siamrpn.optimizer.lr = 0.01
 configer.siamrpn.optimizer.weight_decay = 5e-4
 
 configer.siamrpn.scheduler = edict()

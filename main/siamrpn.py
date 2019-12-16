@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-16 17:50:27
+@LastEditTime: 2019-12-16 19:30:51
 @Update: 
 '''
 import os
@@ -172,7 +172,8 @@ def testSequence(configer):
                     tracker.set_template(image, bbox_gt)
                     continue
 
-                bbox_pred, _ = tracker.track_crop_image(image)
+                bbox_pred, _ = tracker.track(image, 'crop')
+                # bbox_pred, _ = tracker.track(image, 'whole')
 
                 show_bbox(image, bbox_gt, waitkey=5, winname='gt')
                 show_bbox(image, bbox_pred, waitkey=5, winname='pred')
@@ -181,5 +182,13 @@ def testSequence(configer):
 
 if __name__ == '__main__':
 
-    train(configer)
-    # testSequence(configer)
+    import argparse
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--mode', '-m', default='test')
+    args = parser.parse_args()
+
+    if args.mode == 'train':
+        train(configer)
+    elif args.mode == 'test':
+        testSequence(configer)
