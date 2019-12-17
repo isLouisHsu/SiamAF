@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-17 09:53:53
+@LastEditTime: 2019-12-17 16:52:14
 @Update: 
 '''
 import os
@@ -158,7 +158,8 @@ def testSequence(configer):
 
     for i_data, (impaths, annos, ids) in enumerate(dataset):
 
-        # if i_data < 3: continue
+        # if i_data < 14: continue
+
         if len(ids) == 0: continue
 
         for i_id, obj_id in enumerate(ids):
@@ -177,6 +178,8 @@ def testSequence(configer):
 
                 show_bbox(image, bbox_gt, waitkey=5, winname='gt')
                 show_bbox(image, bbox_pred, waitkey=5, winname='pred')
+
+                # tracker.set_template(image, bbox_gt)
             
             tracker.delete_template()
 

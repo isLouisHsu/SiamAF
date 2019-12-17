@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-16 19:27:26
+@LastEditTime: 2019-12-17 16:50:42
 @Update: 
 '''
 import sys
@@ -105,7 +105,7 @@ class SiamRPNTracker():
                 search_image, self.state.corner, self.search_size, lambda w, h: self.pad(w, h) * 2, return_param=True)
 
         # show_bbox(search_image, self.state.corner, winname='search_image')
-        # show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop')
+        show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop', waitkey=5)
         
         with torch.no_grad(): 
             pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_crop))   
@@ -138,6 +138,10 @@ class SiamRPNTracker():
         #     fig.add_subplot(2, 5, i_anchor + 6)
         #     plt.imshow(pscore[i_anchor])
         # plt.show()
+        _pscore = (pscore * 255).astype(np.uint8)
+        for _ch, _p in enumerate(_pscore):
+            cv2.imshow("%d" % _ch, _p)
+        cv2.waitKey(5)
 
         # pick the highest score
         a, r, c = np.unravel_index(pscore.argmax(), pscore.shape)
@@ -151,6 +155,7 @@ class SiamRPNTracker():
         
         # momentum
         momentum = pscore[a, r, c] * self.momentum
+        # res_center[:2] = res_center[:2] * (1 - momentum) + self.state.center[:2] * momentum
         res_center[2:] = res_center[2:] * momentum + self.state.center[2:] * (1 - momentum)     #  w,  h
         
         res_corner = np.array(center2corner(res_center))
