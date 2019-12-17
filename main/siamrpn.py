@@ -172,8 +172,8 @@ def testSequence(configer):
                     tracker.set_template(image, bbox_gt)
                     continue
 
-                bbox_pred, _ = tracker.track(image, 'crop')
-                # bbox_pred, _ = tracker.track(image, 'whole')
+                # bbox_pred, _ = tracker.track(image, 'crop')
+                bbox_pred, _ = tracker.track(image, 'whole')
 
                 show_bbox(image, bbox_gt, waitkey=5, winname='gt')
                 show_bbox(image, bbox_pred, waitkey=5, winname='pred')

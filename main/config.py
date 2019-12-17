@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-16 19:45:04
+@LastEditTime: 2019-12-17 09:51:34
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -43,9 +43,9 @@ configer.siamrpn.net.num_anchor   = \
     len(configer.siamrpn.anchor.anchor_scales)
 
 configer.siamrpn.loss = edict()
-configer.siamrpn.loss.cls_weight = 1.
-configer.siamrpn.loss.reg_weight = .7
 configer.siamrpn.loss.ct_weight  = .1
+configer.siamrpn.loss.cls_weight = 1.
+configer.siamrpn.loss.reg_weight = .5
 configer.siamrpn.loss.pos_thr    = 0.9
 configer.siamrpn.loss.anchor_thr_low  = 0.3
 configer.siamrpn.loss.anchor_thr_high = 0.6
@@ -66,7 +66,7 @@ configer.siamrpn.train.clip_grad  = 10
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
-configer.siamrpn.train.n_epoch = 80
+configer.siamrpn.train.n_epoch = 100
 configer.siamrpn.train.resume = None
 
 configer.siamrpn.tracker = edict()
