@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime: 2019-12-17 09:51:34
+@LastEditTime: 2019-12-20 10:57:30
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -99,10 +99,10 @@ configer.siamaf.net = edict()
 configer.siamaf.net.roi_size = None
 
 configer.siamaf.loss = edict()
-configer.siamaf.loss.cls_weight = 1.0
-configer.siamaf.loss.reg_weight = 1.
+configer.siamaf.loss.cls_weight = 1.
+configer.siamaf.loss.reg_weight = .01
 configer.siamaf.loss.stride = [4, 8]
-
+configer.siamaf.loss.sigma  = .1
 
 configer.siamaf.optimizer = edict()
 configer.siamaf.optimizer.lr = 0.001
@@ -112,10 +112,10 @@ configer.siamaf.scheduler = edict()
 configer.siamaf.scheduler.gamma = 0.9
 
 configer.siamaf.train = edict()
-configer.siamaf.train.batch_size = 8
+configer.siamaf.train.batch_size = 48
 configer.siamaf.train.clip_grad  = 10
 configer.siamaf.train.log_dir = '../logs/siamaf'
 configer.siamaf.train.ckpt = '../ckpt/siamaf.pkl'
-configer.siamaf.train.cuda = False
+configer.siamaf.train.cuda = True
 configer.siamaf.train.n_epoch = 70
 configer.siamaf.train.resume = None

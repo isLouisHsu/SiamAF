@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-16 19:27:08
+@LastEditTime: 2019-12-20 10:54:35
 @Update: 
 '''
 import sys
@@ -184,6 +184,7 @@ class HeatmapLoss(nn.Module):
         self.sigma = sigma
         
         self.mse = nn.MSELoss()
+        self.l1  = nn.L1Loss()
     
     def _heatmap(self, size, mu, sigma):
         """
@@ -210,6 +211,35 @@ class HeatmapLoss(nn.Module):
         # plt.show()
         
         return z
+    
+    def _offset(self, size, center, stride):
+        """
+        Params:
+            size:   {int}
+            center: {tuple(2)}
+            stride: {int}
+        Returns:
+            offset: {ndarray(2, size, size)}
+        """
+        x = y = np.arange(size)
+        x, y = np.meshgrid(x, y)
+        offset = np.stack([y, x])
+        offset = offset * stride - np.array(center)[:, np.newaxis, np.newaxis]
+
+        return offset
+
+    def _size(self, size, shape):
+        """
+        Params:
+            size:   {int}
+            shape:  {tuple(2)} w, h
+        Returns:
+            size: {ndarray(2, size, size)}
+        """
+        size = list(map(lambda x: np.full((size, size), x, dtype=np.float), shape))
+        size = np.stack(size)
+
+        return size
 
     def forward(self, pred_cls, pred_reg, gt_bbox):
         """
@@ -220,26 +250,28 @@ class HeatmapLoss(nn.Module):
         Returns:
             loss_total, loss_cls, loss_reg, acc_cls: {tensor(1)}
         """
-        loss_cls = 0; loss_reg = 0
+        loss_cls = []; loss_reg = []
 
         for j, (cls_pd, reg_pd, s) in enumerate(zip(pred_cls, pred_reg, self.stride)):
             
             for i, (gt_i, cls_i, reg_i) in enumerate(zip(gt_bbox, cls_pd, reg_pd)):
 
+                size = cls_i.size(-1)
+
                 x1, y1, x2, y2 = gt_i.cpu().numpy() - (self.search_size - self.template_size) // 2
                 cx, cy = 0.5 * (x1 + x2), 0.5 * (y1 + y2); w, h = x2 - x1, y2 - y1
                 
                 mu = np.array([cx / s, cy / s]); sigma = self.sigma * np.array([w / s, h / s])
-                cls_gt_i = self._heatmap(cls_i.size(-1), mu, sigma)
-                cls_gt_i = torch.from_numpy(cls_gt_i).unsqueeze(0).to(cls_i.device).float()
-                loss_cls_i = self.mse(cls_i / cls_i.sum(), cls_gt_i)
+                cls_gt_i = torch.from_numpy(self._heatmap(size, mu, sigma)).unsqueeze(0).to(cls_i.device).float()
+                loss_cls_i = self.mse(cls_i / cls_i.sum(), cls_gt_i); loss_cls += [loss_cls_i]
+                
+                reg_gt_i = torch.from_numpy(np.concatenate([
+                    self._offset(size, (cx, cy), s), self._size(size, (w, h))
+                ], axis=0)).to(reg_i.device).float()
+                loss_reg_i = self.l1(reg_i, reg_gt_i); loss_reg += [loss_reg_i]
 
-                # TODO:   
+        loss_cls = torch.stack(loss_cls).mean(); loss_reg = torch.stack(loss_reg).mean()
+        loss_total = self.cls_weight * loss_cls + self.reg_weight * loss_reg
 
-                pass
-
-            # N, _, feature_size, _ = cls.size()
-            # center_size = (feature_size - 1) * s
-            
-            pass
+        return loss_total, loss_cls, loss_reg
     
