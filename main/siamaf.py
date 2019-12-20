@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-20 10:57:00
+@LastEditTime: 2019-12-20 11:10:42
 @Update: 
 '''
 import os
@@ -145,7 +145,7 @@ if __name__ == '__main__':
     import argparse
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', '-m', default='test')
+    parser.add_argument('--mode', '-m', default='train')
     args = parser.parse_args()
 
     if args.mode == 'train':

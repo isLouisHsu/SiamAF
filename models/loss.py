@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-20 10:54:35
+@LastEditTime: 2019-12-20 11:12:39
 @Update: 
 '''
 import sys
@@ -184,7 +184,7 @@ class HeatmapLoss(nn.Module):
         self.sigma = sigma
         
         self.mse = nn.MSELoss()
-        self.l1  = nn.L1Loss()
+        self.l1  = nn.L1Loss(reduce=False)
     
     def _heatmap(self, size, mu, sigma):
         """
@@ -268,7 +268,9 @@ class HeatmapLoss(nn.Module):
                 reg_gt_i = torch.from_numpy(np.concatenate([
                     self._offset(size, (cx, cy), s), self._size(size, (w, h))
                 ], axis=0)).to(reg_i.device).float()
-                loss_reg_i = self.l1(reg_i, reg_gt_i); loss_reg += [loss_reg_i]
+                loss_reg_i = self.l1(reg_i, reg_gt_i)
+                loss_reg_i = (loss_reg_i.mean(dim=0).unsqueeze(0) * cls_gt_i).mean()
+                loss_reg += [loss_reg_i]
 
         loss_cls = torch.stack(loss_cls).mean(); loss_reg = torch.stack(loss_reg).mean()
         loss_total = self.cls_weight * loss_cls + self.reg_weight * loss_reg
