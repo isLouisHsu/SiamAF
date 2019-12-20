@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 15:24:44
-@LastEditTime: 2019-11-30 18:55:45
+@LastEditTime: 2019-12-20 11:03:15
 @Update: 
 '''
 import torch
@@ -61,9 +61,8 @@ class Bottleneck(nn.Module):
         out = self.bn3(out)
         
         # remove padding
-        mask = torch.ones_like(out, dtype=torch.bool)
-        mask[:, :, [0, -1], :] = 0
-        mask[:, :, :, [0, -1]] = 0
+        mask = torch.ones_like(out, dtype=torch.uint8)
+        mask[:, :, [0, -1], :] = 0; mask[:, :, :, [0, -1]] = 0
         out = torch.where(mask, out, torch.zeros_like(out))
 
         if self.downsample is not None:
