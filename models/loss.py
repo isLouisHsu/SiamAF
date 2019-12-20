@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-20 11:12:39
+@LastEditTime: 2019-12-20 11:14:10
 @Update: 
 '''
 import sys
@@ -184,7 +184,7 @@ class HeatmapLoss(nn.Module):
         self.sigma = sigma
         
         self.mse = nn.MSELoss()
-        self.l1  = nn.L1Loss(reduce=False)
+        self.l1  = nn.L1Loss(reduction='none')
     
     def _heatmap(self, size, mu, sigma):
         """
