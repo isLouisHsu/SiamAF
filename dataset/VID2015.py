@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime : 2019-12-25 18:56:40
+@LastEditTime : 2019-12-25 21:08:14
 @Update: 
 '''
 import sys
@@ -52,7 +52,9 @@ class VID2015PairData(Dataset):
         self.template_size = template_size
         self.search_size   = search_size
         self.frame_range   = frame_range
+        self.keep_per_frame = keep_per_frame
         self.pad = pad[0]
+        self.padval = padval
         
         self.blur   = blur
         self.rotate = rotate
@@ -209,7 +211,8 @@ class VID2015PairData(Dataset):
         # crop
         shift_x = mshift * (np.random.rand() * 2 - 1); bbox[[0, 2]] += shift_x
         shift_y = mshift * (np.random.rand() * 2 - 1); bbox[[1, 3]] += shift_y
-        im, (scale, shift) = crop_square_according_to_bbox(im, bbox, size, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), return_param=True)
+        im, (scale, shift) = crop_square_according_to_bbox(
+            im, bbox, size, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), padval=self.padval, return_param=True)
         # show_bbox(im, bbox, winname='crop')
 
         # bbox scale & shift
@@ -250,7 +253,7 @@ class VID2015PairDataV2(Dataset):
 
     def __init__(self, mode, 
                 template_size=127, search_size=255, frame_range=30, keep_per_frame=30, 
-                pad=[lambda w, h: (w + h) / 2], padval=None,
+                pad=[lambda w, h: (w + h) / 2], padval=0,
                 blur=0, rotate=5, scale=0.05, color=1, flip=1, mshift=32):
 
         self.mode = mode
@@ -404,7 +407,8 @@ class VID2015PairDataV2(Dataset):
         # crop
         shift_x = mshift * (np.random.rand() * 2 - 1); bbox[[0, 2]] += shift_x
         shift_y = mshift * (np.random.rand() * 2 - 1); bbox[[1, 3]] += shift_y
-        im, (scale, shift) = crop_square_according_to_bbox(im, bbox, size, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), return_param=True)
+        im, (scale, shift) = crop_square_according_to_bbox(
+            im, bbox, size, pad=lambda w, h: self.pad(w, h) * (size // self.template_size), padval=self.padval, return_param=True)
         # show_bbox(im, bbox, winname='crop')
 
         # bbox scale & shift

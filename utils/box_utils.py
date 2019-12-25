@@ -301,7 +301,7 @@ def show_bbox(im, bbox, score=None, points=None, winname="", waitkey=0):
     cv2.imshow(winname, image)
     cv2.waitKey(waitkey)
 
-def crop_square_according_to_bbox(im, bbox, size=None, pad=None, return_param=False):
+def crop_square_according_to_bbox(im, bbox, size=None, pad=None, padval=None, return_param=False):
     """
     Params:
         image: {ndarray(H, W, C)}
@@ -323,7 +323,7 @@ def crop_square_according_to_bbox(im, bbox, size=None, pad=None, return_param=Fa
             [0, 1, yc_ - yc]
         ])
 
-    padval = im.mean(0).mean(0)
+    padval = im.mean(0).mean(0) if padval is None else padval
     im = cv2.warpAffine(im, M, (a, a), borderMode=cv2.BORDER_CONSTANT, borderValue=padval)
     im = cv2.resize(im, (size, size)) if size is not None else im
 

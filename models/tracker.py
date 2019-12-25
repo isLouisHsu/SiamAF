@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-17 16:50:42
+@LastEditTime : 2019-12-25 21:07:07
 @Update: 
 '''
 import sys
@@ -31,7 +31,7 @@ class SiamRPNTracker():
 
     def __init__(self, net, device, anchor,
                 template_size=127, search_size=255, feature_size=17, center_size=7,
-                pad=[lambda w, h: (w + h) / 2],
+                pad=[lambda w, h: (w + h) / 2], padval=None,
                 penalty_k=1.0, window_factor=0.42, momentum=0.295):
 
         self.device = device
@@ -42,6 +42,7 @@ class SiamRPNTracker():
         self.feature_size  = feature_size
         self.center_size   = center_size
         self.pad = pad[0]
+        self.padval = padval
 
         self.anchor = anchor
         self.num_anchor = len(anchor.anchor_ratios) * len(anchor.anchor_scales)
@@ -66,7 +67,7 @@ class SiamRPNTracker():
         self._update_state(bbox)
         
         template_image, (self.template_scale, _) = crop_square_according_to_bbox(
-            template_image, bbox, self.template_size, self.pad, return_param=True)
+            template_image, bbox, self.template_size, self.pad, self.padval, return_param=True)
         # show_bbox(template_image, bbox, winname='template_image')
         
         template_tensor = self._ndarray2tensor(template_image)
@@ -102,7 +103,7 @@ class SiamRPNTracker():
             score: {ndarray(N)}
         """
         search_crop, (scale, shift) = crop_square_according_to_bbox(
-                search_image, self.state.corner, self.search_size, lambda w, h: self.pad(w, h) * 2, return_param=True)
+                search_image, self.state.corner, self.search_size, lambda w, h: self.pad(w, h) * 2, self.padval, return_param=True)
 
         # show_bbox(search_image, self.state.corner, winname='search_image')
         show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop', waitkey=5)
