@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime : 2019-12-25 14:30:57
+@LastEditTime : 2019-12-25 14:45:42
 @Update: 
 '''
 import sys
@@ -276,16 +276,22 @@ class VID2015PairDataV2(Dataset):
 
     def __getitem__(self, index):
         
-        xml_path = self._pair_samples[index]
-        img_path = list(map(lambda x: x.replace('Annotations', 'Data'), xml_path))
-        img_path = list(map(lambda x: x.replace('xml', 'JPEG'), img_path))
-        
-        # ----- read annotations and images -----
-        template_anno,  search_anno  = list(map(self._read_annotation_xml, xml_path))
-        template_image, search_image = list(map(cv2.imread, img_path))
+        while True:
 
-        # ----- randomly choose an object -------
-        common_id = [k for k in template_anno.keys() if k in search_anno.keys()]
+            xml_path = self._pair_samples[index]
+            img_path = list(map(lambda x: x.replace('Annotations', 'Data'), xml_path))
+            img_path = list(map(lambda x: x.replace('xml', 'JPEG'), img_path))
+            
+            # ----- read annotations and images -----
+            template_anno,  search_anno  = list(map(self._read_annotation_xml, xml_path))
+            template_image, search_image = list(map(cv2.imread, img_path))
+
+            # ----- randomly choose an object -------
+            common_id = [k for k in template_anno.keys() if k in search_anno.keys()]
+            if len(common_id)> 0: break
+
+            index = np.random.randint(self.n_samples)
+
         trackid = np.random.choice(common_id)
         template_bbox, search_bbox = template_anno[trackid], search_anno[trackid]
         
