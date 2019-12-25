@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime : 2019-12-25 16:33:58
+@LastEditTime : 2019-12-25 16:49:51
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -18,7 +18,7 @@ configer.siamrpn = edict()
 configer.siamrpn.vid = edict()
 configer.siamrpn.vid.template_size = 127
 configer.siamrpn.vid.search_size   = 255
-configer.siamrpn.vid.frame_range   = 10
+configer.siamrpn.vid.frame_range   = 20
 configer.siamrpn.vid.pad = lambda w, h: (w + h) / 2,
 configer.siamrpn.vid.blur= 1
 configer.siamrpn.vid.rotate = 5

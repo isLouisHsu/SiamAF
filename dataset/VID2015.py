@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime : 2019-12-25 14:45:42
+@LastEditTime : 2019-12-25 16:50:23
 @Update: 
 '''
 import sys
@@ -248,7 +248,7 @@ class VID2015PairDataV2(Dataset):
     PATH = '../data/ILSVRC2015_VID/ILSVRC2015/{subdir}/VID/{mode}'
 
     def __init__(self, mode, 
-                template_size=127, search_size=255, frame_range=30, keep_per_frame=100, pad=[lambda w, h: (w + h) / 2],
+                template_size=127, search_size=255, frame_range=30, keep_per_frame=20, pad=[lambda w, h: (w + h) / 2],
                 blur=0, rotate=5, scale=0.05, color=1, flip=1, mshift=32):
 
         self.mode = mode
