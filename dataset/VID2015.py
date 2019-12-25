@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime : 2019-12-25 16:50:23
+@LastEditTime : 2019-12-25 18:56:40
 @Update: 
 '''
 import sys
@@ -44,7 +44,8 @@ class VID2015PairData(Dataset):
     PATH = '../data/ILSVRC2015_VID/ILSVRC2015/{subdir}/VID/{mode}'
 
     def __init__(self, mode, 
-                template_size=127, search_size=255, frame_range=30, pad=[lambda w, h: (w + h) / 2],
+                template_size=127, search_size=255, frame_range=30, keep_per_frame=30, 
+                pad=[lambda w, h: (w + h) / 2], padval=None,
                 blur=0, rotate=5, scale=0.05, color=1, flip=1, mshift=32):
 
         self.mode = mode
@@ -192,7 +193,7 @@ class VID2015PairData(Dataset):
         # show_bbox(im, bbox, winname='gt')
 
         imh, imw = im.shape[:-1]
-        padval = im.mean(0).mean(0)
+        padval = im.mean(0).mean(0) if self.padval is None else self.padval
 
         # rotate & scale
         rows, cols = im.shape[:-1]
@@ -248,7 +249,8 @@ class VID2015PairDataV2(Dataset):
     PATH = '../data/ILSVRC2015_VID/ILSVRC2015/{subdir}/VID/{mode}'
 
     def __init__(self, mode, 
-                template_size=127, search_size=255, frame_range=30, keep_per_frame=20, pad=[lambda w, h: (w + h) / 2],
+                template_size=127, search_size=255, frame_range=30, keep_per_frame=30, 
+                pad=[lambda w, h: (w + h) / 2], padval=None,
                 blur=0, rotate=5, scale=0.05, color=1, flip=1, mshift=32):
 
         self.mode = mode
@@ -257,6 +259,7 @@ class VID2015PairDataV2(Dataset):
         self.frame_range   = frame_range
         self.keep_per_frame = keep_per_frame
         self.pad = pad[0]
+        self.padval = padval
         
         self.blur   = blur
         self.rotate = rotate
@@ -385,7 +388,7 @@ class VID2015PairDataV2(Dataset):
         # show_bbox(im, bbox, winname='gt')
 
         imh, imw = im.shape[:-1]
-        padval = im.mean(0).mean(0)
+        padval = im.mean(0).mean(0) if self.padval is None else self.padval
 
         # rotate & scale
         rows, cols = im.shape[:-1]
