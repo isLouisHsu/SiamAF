@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-01 14:23:43
-@LastEditTime : 2019-12-25 14:17:42
+@LastEditTime : 2019-12-25 14:30:57
 @Update: 
 '''
 import sys
@@ -289,15 +289,15 @@ class VID2015PairDataV2(Dataset):
         trackid = np.random.choice(common_id)
         template_bbox, search_bbox = template_anno[trackid], search_anno[trackid]
         
-        show_bbox(template_image, template_bbox, winname='[line291] template')
-        show_bbox(search_image, search_bbox, winname='[line292] search')
+        # show_bbox(template_image, template_bbox, winname='[line291] template')
+        # show_bbox(search_image, search_bbox, winname='[line292] search')
 
         # --------- augmentation and crop -------
         template_image, template_bbox = self._augment_crop(template_image, template_bbox, self.template_size)
         search_image,   search_bbox   = self._augment_crop(search_image,   search_bbox,   self.search_size, self.mshift)
 
-        show_bbox(template_image, template_bbox, winname='[line298] template')
-        show_bbox(search_image, search_bbox, winname='[line299] search')
+        # show_bbox(template_image, template_bbox, winname='[line298] template')
+        # show_bbox(search_image, search_bbox, winname='[line299] search')
         
         # ------------ to tensor ----------------
         template_image = torch.from_numpy(template_image.transpose(2, 0, 1) / 255.)
