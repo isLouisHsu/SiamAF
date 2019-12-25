@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime : 2019-12-25 18:55:56
+@LastEditTime : 2019-12-25 21:09:13
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -73,6 +73,7 @@ configer.siamrpn.train.resume = None
 
 configer.siamrpn.tracker = edict()
 configer.siamrpn.tracker.pad           = configer.siamrpn.vid.pad
+configer.siamrpn.tracker.padval        = configer.siamrpn.vid.padval
 configer.siamrpn.tracker.template_size = configer.siamrpn.anchor.template_size
 configer.siamrpn.tracker.search_size   = configer.siamrpn.anchor.search_size
 configer.siamrpn.tracker.feature_size  = configer.siamrpn.anchor.feature_size
