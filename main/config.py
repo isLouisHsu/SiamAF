@@ -79,8 +79,8 @@ configer.siamrpn.tracker.search_size   = configer.siamrpn.anchor.search_size
 configer.siamrpn.tracker.feature_size  = configer.siamrpn.anchor.feature_size
 configer.siamrpn.tracker.center_size   = 7
 configer.siamrpn.tracker.penalty_k     = 0.055
-configer.siamrpn.tracker.window_factor = 0.22
-configer.siamrpn.tracker.momentum      = 0.505
+configer.siamrpn.tracker.window_factor = 0.32
+configer.siamrpn.tracker.momentum      = 0.005
 
 
 # ------------------ SiamAF ------------------
