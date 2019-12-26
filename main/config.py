@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime : 2019-12-25 21:09:13
+@LastEditTime : 2019-12-26 10:39:20
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -68,7 +68,7 @@ configer.siamrpn.train.clip_grad  = 10
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
 configer.siamrpn.train.ckpt = '../ckpt/siamrpn_v2.pkl'
 configer.siamrpn.train.cuda = True
-configer.siamrpn.train.n_epoch = 70
+configer.siamrpn.train.n_epoch = 30
 configer.siamrpn.train.resume = None
 
 configer.siamrpn.tracker = edict()
@@ -79,8 +79,8 @@ configer.siamrpn.tracker.search_size   = configer.siamrpn.anchor.search_size
 configer.siamrpn.tracker.feature_size  = configer.siamrpn.anchor.feature_size
 configer.siamrpn.tracker.center_size   = 7
 configer.siamrpn.tracker.penalty_k     = 0.055
-configer.siamrpn.tracker.window_factor = 0.32
-configer.siamrpn.tracker.momentum      = 0.005
+configer.siamrpn.tracker.window_factor = 0.22
+configer.siamrpn.tracker.momentum      = 0.505
 
 
 # ------------------ SiamAF ------------------
