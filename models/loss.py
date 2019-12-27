@@ -6,12 +6,13 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime: 2019-12-20 11:14:10
+@LastEditTime : 2019-12-27 16:23:19
 @Update: 
 '''
 import sys
 sys.path.append('../')
 
+import cv2
 import numpy as np
 import torch
 from torch import nn
@@ -175,7 +176,7 @@ class HeatmapLoss(nn.Module):
     template_size=127
     search_size=255 
 
-    def __init__(self, cls_weight=1., reg_weight=1., stride=[4, 8], sigma=.2):
+    def __init__(self, cls_weight=1., reg_weight=1., stride=[4, 8], sigma=1.0):
         super(HeatmapLoss, self).__init__()
 
         self.cls_weight = cls_weight
@@ -186,26 +187,23 @@ class HeatmapLoss(nn.Module):
         self.mse = nn.MSELoss()
         self.l1  = nn.L1Loss(reduction='none')
     
-    def _heatmap(self, size, mu, sigma):
+    def _heatmap(self, size, pt):
         """
         Params:
             size:   {int}
-            mu, sigma: {ndarray(2)}
+            pt:     {ndarray(2)} x, y
         Returns:
             z: {ndarray(size, size)}
         """
-        gaussian = lambda x, u, s: np.exp(- ((x - u) / s) ** 2 / 2) / (np.sqrt(2 * np.pi) * s)
-        x = np.arange(size); z1 = gaussian(x, mu[1], sigma[1]); z2 = gaussian(x, mu[0], sigma[0])
-        z = np.outer(z1, z2)
+        x, y = np.arange(size), np.arange(size)
+        y, x = np.meshgrid(x, y)
+        xy = np.stack([x, y], axis=-1)
 
-        # print(mu, sigma)
-        # print(sigma / self.sigma)
-        # print(z.sum())
+        z = np.exp(- 0.5 * (np.linalg.norm(xy - pt, axis=-1) / self.sigma) ** 2)
+
+        # print(pt)
+        # print(z.max())
         # from matplotlib import pyplot as plt
-        # # plt.figure()
-        # # plt.plot(z1)
-        # # plt.figure()
-        # # plt.plot(z2)
         # plt.figure()
         # plt.imshow(z)
         # plt.show()
@@ -222,9 +220,10 @@ class HeatmapLoss(nn.Module):
             offset: {ndarray(2, size, size)}
         """
         x = y = np.arange(size)
-        x, y = np.meshgrid(x, y)
-        offset = np.stack([y, x])
-        offset = offset * stride - np.array(center)[:, np.newaxis, np.newaxis]
+        y, x = np.meshgrid(x, y)
+        xy = np.stack([x, y], axis=0)
+
+        offset = xy * stride - np.array(center)[:, np.newaxis, np.newaxis]
 
         return offset
 
@@ -261,9 +260,8 @@ class HeatmapLoss(nn.Module):
                 x1, y1, x2, y2 = gt_i.cpu().numpy() - (self.search_size - self.template_size) // 2
                 cx, cy = 0.5 * (x1 + x2), 0.5 * (y1 + y2); w, h = x2 - x1, y2 - y1
                 
-                mu = np.array([cx / s, cy / s]); sigma = self.sigma * np.array([w / s, h / s])
-                cls_gt_i = torch.from_numpy(self._heatmap(size, mu, sigma)).unsqueeze(0).to(cls_i.device).float()
-                loss_cls_i = self.mse(cls_i / cls_i.sum(), cls_gt_i); loss_cls += [loss_cls_i]
+                cls_gt_i = torch.from_numpy(self._heatmap(size, np.array([cx / s, cy / s]))).unsqueeze(0).to(cls_i.device).float()
+                loss_cls_i = self.mse(cls_i, cls_gt_i); loss_cls += [loss_cls_i]
                 
                 reg_gt_i = torch.from_numpy(np.concatenate([
                     self._offset(size, (cx, cy), s), self._size(size, (w, h))

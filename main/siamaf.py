@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime: 2019-12-20 11:10:42
+@LastEditTime : 2019-12-27 16:25:00
 @Update: 
 '''
 import os
@@ -26,7 +26,7 @@ from tensorboardX import SummaryWriter
 from torchstat import stat
 
 from config import configer
-from dataset.VID2015 import VID2015PairData, VID2015SequenceData
+from dataset.VID2015 import VID2015PairData, VID2015PairDataV2, VID2015SequenceData
 from models.network import SiamAF
 from models.loss    import HeatmapLoss
 
@@ -41,8 +41,10 @@ def train(configer):
     params = configer.siamaf.train
 
     # datasets
-    trainset = VID2015PairData('train',                     **configer.siamaf.vid)
-    validset = VID2015PairData('val',                       **configer.siamaf.vid)
+    # trainset = VID2015PairData('train',                     **configer.siamaf.vid)
+    # validset = VID2015PairData('val',                       **configer.siamaf.vid)
+    trainset = VID2015PairDataV2('train',                   **configer.siamaf.vid)
+    validset = VID2015PairDataV2('val',                     **configer.siamaf.vid)
     trainloader = DataLoader(trainset, params.batch_size, shuffle=True)
     validloader = DataLoader(validset, params.batch_size, shuffle=True)
 

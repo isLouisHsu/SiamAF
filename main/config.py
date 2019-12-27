@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime : 2019-12-26 10:39:20
+@LastEditTime : 2019-12-27 16:25:37
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -47,7 +47,7 @@ configer.siamrpn.net.num_anchor   = \
 configer.siamrpn.loss = edict()
 configer.siamrpn.loss.ct_weight  = .1
 configer.siamrpn.loss.cls_weight = 1.
-configer.siamrpn.loss.reg_weight = .5
+configer.siamrpn.loss.reg_weight = 1.
 configer.siamrpn.loss.pos_thr    = 0.9
 configer.siamrpn.loss.anchor_thr_low  = 0.3
 configer.siamrpn.loss.anchor_thr_high = 0.6
@@ -90,22 +90,24 @@ configer.siamaf.vid = edict()
 configer.siamaf.vid.template_size = 127
 configer.siamaf.vid.search_size   = 255
 configer.siamaf.vid.frame_range   = 20
+configer.siamaf.vid.keep_per_frame= 30
 configer.siamaf.vid.pad = lambda w, h: (w + h) / 2,
+configer.siamaf.vid.padval = 0.
 configer.siamaf.vid.blur= 1
 configer.siamaf.vid.rotate = 5
 configer.siamaf.vid.scale  = 0.05
 configer.siamaf.vid.color  = 1
 configer.siamaf.vid.flip   = 1
-configer.siamaf.vid.mshift = 32
+configer.siamaf.vid.mshift = 48
 
 configer.siamaf.net = edict()
 configer.siamaf.net.roi_size = None
 
 configer.siamaf.loss = edict()
 configer.siamaf.loss.cls_weight = 1.
-configer.siamaf.loss.reg_weight = .1
+configer.siamaf.loss.reg_weight = 1.
 configer.siamaf.loss.stride = [4, 8]
-configer.siamaf.loss.sigma  = .1
+configer.siamaf.loss.sigma  = 1.0
 
 configer.siamaf.optimizer = edict()
 configer.siamaf.optimizer.lr = 0.001
@@ -115,10 +117,10 @@ configer.siamaf.scheduler = edict()
 configer.siamaf.scheduler.gamma = 0.9
 
 configer.siamaf.train = edict()
-configer.siamaf.train.batch_size = 48
+configer.siamaf.train.batch_size = 64
 configer.siamaf.train.clip_grad  = 10
 configer.siamaf.train.log_dir = '../logs/siamaf'
 configer.siamaf.train.ckpt = '../ckpt/siamaf.pkl'
 configer.siamaf.train.cuda = True
-configer.siamaf.train.n_epoch = 70
+configer.siamaf.train.n_epoch = 30
 configer.siamaf.train.resume = None
