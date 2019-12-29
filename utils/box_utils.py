@@ -333,13 +333,16 @@ def crop_square_according_to_bbox(im, bbox, size=None, pad=None, padval=None, re
     else:
         return im
 
-def get_hamming_window(size, num_anchor):
+def get_hamming_window(size, num_anchor=None):
     """
     Params:
         size: {int}
         num_anchor: {int}
+    Returns:
+        win: {ndarray(num_anchor, size, size)}
     """
     win = np.hamming(size)
     win = np.outer(win, win)
-    win = np.stack([win] * num_anchor, axis=0)
+    if num_anchor is not None:
+        win = np.stack([win] * num_anchor, axis=0)
     return win

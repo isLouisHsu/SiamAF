@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime: 2019-12-11 10:37:05
+@LastEditTime : 2019-12-29 12:48:17
 @Update: 
 '''
 import torch
@@ -121,7 +121,7 @@ class SiamAF(nn.Module):
         pred_cls = []; pred_reg = []
         for i, head in enumerate(self.head):
             _cls, _reg = head(self.z_f[i], x_f[i])
-            pred_cls += [_cls]; pred_reg += [_cls]
+            pred_cls += [_cls]; pred_reg += [_reg]
             
         return pred_cls, pred_reg
 

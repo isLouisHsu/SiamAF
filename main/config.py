@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime : 2019-12-27 16:25:37
+@LastEditTime : 2019-12-29 14:06:22
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -66,7 +66,7 @@ configer.siamrpn.train = edict()
 configer.siamrpn.train.batch_size = 48
 configer.siamrpn.train.clip_grad  = 10
 configer.siamrpn.train.log_dir = '../logs/siamrpn'
-configer.siamrpn.train.ckpt = '../ckpt/siamrpn_v2.pkl'
+configer.siamrpn.train.ckpt = '../ckpt/siamrpn.pkl'
 configer.siamrpn.train.cuda = True
 configer.siamrpn.train.n_epoch = 30
 configer.siamrpn.train.resume = None
@@ -108,6 +108,8 @@ configer.siamaf.loss.cls_weight = 1.
 configer.siamaf.loss.reg_weight = 1.
 configer.siamaf.loss.stride = [4, 8]
 configer.siamaf.loss.sigma  = 1.0
+configer.siamaf.loss.alpha  = 2.0
+configer.siamaf.loss.beta   = 4.0
 
 configer.siamaf.optimizer = edict()
 configer.siamaf.optimizer.lr = 0.001
@@ -124,3 +126,13 @@ configer.siamaf.train.ckpt = '../ckpt/siamaf.pkl'
 configer.siamaf.train.cuda = True
 configer.siamaf.train.n_epoch = 30
 configer.siamaf.train.resume = None
+
+configer.siamaf.tracker = edict()
+configer.siamaf.tracker.template_size = 127
+configer.siamaf.tracker.search_size   = 255
+configer.siamaf.tracker.stride        = [4, 8]
+configer.siamaf.tracker.pad           = [lambda w, h: (w + h) / 2]
+configer.siamaf.tracker.padval        = 0.
+configer.siamaf.tracker.penalty_k     = 1.0
+configer.siamaf.tracker.window_factor = 0.32
+configer.siamaf.tracker.momentum      = 0.295

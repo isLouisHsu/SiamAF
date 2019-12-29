@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime : 2019-12-27 16:23:19
+@LastEditTime : 2019-12-29 14:05:30
 @Update: 
 '''
 import sys
@@ -176,7 +176,8 @@ class HeatmapLoss(nn.Module):
     template_size=127
     search_size=255 
 
-    def __init__(self, cls_weight=1., reg_weight=1., stride=[4, 8], sigma=1.0):
+    def __init__(self, cls_weight=1., reg_weight=1., stride=[4, 8], sigma=1.0,
+                    alpha=2., beta=4.):
         super(HeatmapLoss, self).__init__()
 
         self.cls_weight = cls_weight
@@ -184,6 +185,10 @@ class HeatmapLoss(nn.Module):
         self.stride = stride
         self.sigma = sigma
         
+        # focal loss
+        self.alpha = alpha
+        self.beta  = beta
+
         self.mse = nn.MSELoss()
         self.l1  = nn.L1Loss(reduction='none')
     
@@ -260,8 +265,15 @@ class HeatmapLoss(nn.Module):
                 x1, y1, x2, y2 = gt_i.cpu().numpy() - (self.search_size - self.template_size) // 2
                 cx, cy = 0.5 * (x1 + x2), 0.5 * (y1 + y2); w, h = x2 - x1, y2 - y1
                 
-                cls_gt_i = torch.from_numpy(self._heatmap(size, np.array([cx / s, cy / s]))).unsqueeze(0).to(cls_i.device).float()
-                loss_cls_i = self.mse(cls_i, cls_gt_i); loss_cls += [loss_cls_i]
+                cls_gt_i = torch.from_numpy(self._heatmap(size, np.array([cx // s, cy // s]))).unsqueeze(0).to(cls_i.device).float()
+                # loss_cls_i = self.mse(cls_i, cls_gt_i); loss_cls += [loss_cls_i]
+
+                cls_i = torch.clamp(cls_i, 1e-6, 1 - 1e-6)
+                loss_cls_i = torch.where(cls_gt_i == 1, 
+                        ((1 - cls_i) ** self.alpha) * (     cls_gt_i  ** self.beta) * torch.log(    cls_i), 
+                        (     cls_i  ** self.alpha) * ((1 - cls_gt_i) ** self.beta) * torch.log(1 - cls_i))
+                loss_cls_i = - loss_cls_i.mean()
+                loss_cls += [loss_cls_i]
                 
                 reg_gt_i = torch.from_numpy(np.concatenate([
                     self._offset(size, (cx, cy), s), self._size(size, (w, h))

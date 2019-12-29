@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 10:31:12
-@LastEditTime : 2019-12-27 16:25:00
+@LastEditTime : 2019-12-29 14:07:12
 @Update: 
 '''
 import os
@@ -141,13 +141,56 @@ def train(configer):
 
     writer.close()
 
+# --------------------------------------------------------
+
+import cv2
+from models.tracker import SiamAFTracker
+from utils.box_utils import naive_anchors, show_bbox
+
+def testSequence(configer):
+
+    dataset = VID2015SequenceData('val', **configer.siamaf.vid)
+
+    # initialize network
+    net = SiamAF(**configer.siamaf.net)
+    net.load_state_dict(
+        torch.load(configer.siamaf.train.ckpt, map_location='cpu'))
+
+    tracker = SiamAFTracker(net=net, device=device, **configer.siamaf.tracker)
+
+    for i_data, (impaths, annos, ids) in enumerate(dataset):
+
+        # if i_data < 14: continue
+
+        if len(ids) == 0: continue
+
+        for i_id, obj_id in enumerate(ids):
+
+            anno = list(map(lambda x: x[obj_id] if obj_id in x.keys() else None, annos))
+
+            for i_frame, (impath, bbox_gt) in enumerate(zip(impaths, anno)):
+                
+                image = cv2.imread(impath, cv2.IMREAD_COLOR)
+                if bbox_gt is not None and not tracker.template_is_setted():
+                    tracker.set_template(image, bbox_gt)
+                    continue
+
+                bbox_pred, _ = tracker.track(image, 'crop')
+                # bbox_pred, _ = tracker.track(image, 'whole')
+
+                show_bbox(image, bbox_gt, waitkey=5, winname='gt')
+                show_bbox(image, bbox_pred, waitkey=5, winname='pred')
+
+                # tracker.set_template(image, bbox_gt)
+            
+            tracker.delete_template()
 
 if __name__ == '__main__':
 
     import argparse
     
     parser = argparse.ArgumentParser()
-    parser.add_argument('--mode', '-m', default='train')
+    parser.add_argument('--mode', '-m', default='test')
     args = parser.parse_args()
 
     if args.mode == 'train':

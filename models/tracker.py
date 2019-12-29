@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime : 2019-12-25 21:07:07
+@LastEditTime : 2019-12-29 13:31:07
 @Update: 
 '''
 import sys
@@ -203,14 +203,6 @@ class SiamRPNTracker():
         penalty = np.exp(- (pr * ps - 1) * self.penalty_k)              # (   5, h, w)
         pscore = score * penalty                                        # (   5, h, w)
 
-        # fig = plt.figure()
-        # for i_anchor in range(self.num_anchor):
-        #     fig.add_subplot(2, 5, i_anchor + 1)
-        #     plt.imshow(score[i_anchor])
-        #     fig.add_subplot(2, 5, i_anchor + 6)
-        #     plt.imshow(pscore[i_anchor])
-        # plt.show()
-
         # pick the highest score
         a, r, c = np.unravel_index(pscore.argmax(), pscore.shape)
         res_center = bbox_center[:, a, r, c]; score = score[a, r, c]
@@ -226,6 +218,161 @@ class SiamRPNTracker():
         self._update_state(res_corner)
 
         return res_corner, score
+
+    def _ndarray2tensor(self, ndarray):
+        return torch.from_numpy(ndarray.transpose(2, 0, 1) / 255.).unsqueeze(0).float().to(self.device)
+
+    def _update_state(self, bbox):
+        """ Update state
+        Params:
+            bbox: {ndarray(4)} x1, y1, x2, y2
+        """
+        self.state.corner = bbox                           # x1, y1, x2, y2
+        self.state.center = np.array(corner2center(bbox))  # xc, yc,  w,  h
+
+        w, h = self.state.center[2:]
+        self.state.r = self._r(w, h)
+        self.state.s = self._s(w, h)
+
+    def _r(self, w, h):
+        return w / h
+    
+    def _s(self, w, h):
+        p = self.pad(w, h)
+        return np.sqrt(w + p) * np.sqrt(h + p)
+
+
+class SiamAFTracker():
+
+    def __init__(self, net, device,
+                template_size=127, search_size=255, stride=[4, 8], 
+                pad=[lambda w, h: (w + h) / 2], padval=None,
+                penalty_k=1.0, window_factor=0., momentum=0.295):
+
+        self.device = device
+        self.net = net; self.net.to(device)
+
+        self.template_size = template_size
+        self.search_size   = search_size
+        self.stride        = stride
+        self.pad = pad[0]
+        self.padval = padval
+
+        self.penalty_k  = penalty_k
+        self.window_factor = window_factor
+        self.momentum = momentum
+
+        self.state = edict()
+        self.template_scale = None
+
+    def set_template(self, template_image, bbox):
+        """
+        Params:
+            template_image: {ndarray(H, W, C)}
+            bbox:           {ndarray(4)}        x1, y1, x2, y2
+        """
+        self._update_state(bbox)
+        
+        template_image, (self.template_scale, _) = crop_square_according_to_bbox(
+            template_image, bbox, self.template_size, self.pad, self.padval, return_param=True)
+        # show_bbox(template_image, bbox, winname='template_image')
+        
+        template_tensor = self._ndarray2tensor(template_image)
+        self.net.template(template_tensor)
+
+    def delete_template(self):
+
+        self.net.z_f = None
+    
+    def template_is_setted(self):
+
+        return self.net.z_f is not None
+
+    def track(self, search_image, mode='crop'):
+        """
+        Params:
+            template_image: {ndarray(H, W, C)}
+        Returns:
+            res_corner: {ndarray(N, 4)}
+            score: {ndarray(N)}
+        """
+        if mode == 'crop':
+            return self._track_crop_image(search_image)
+        elif mode == 'whole':
+            return self._track_whole_image(search_image)
+
+    def _track_crop_image(self, search_image):
+        """
+        Params:
+            template_image: {ndarray(H, W, C)}
+        Returns:
+            res_corner: {ndarray(N, 4)}
+            score: {ndarray(N)}
+        """
+        search_crop, (scale, shift) = crop_square_according_to_bbox(
+                search_image, self.state.corner, self.search_size, lambda w, h: self.pad(w, h) * 2, self.padval, return_param=True)
+
+        # show_bbox(search_image, self.state.corner, winname='search_image')
+        # show_bbox(search_crop, (self.state.corner - np.concatenate([shift, shift])) * scale, winname='search_crop', waitkey=5)
+        
+        with torch.no_grad(): 
+            pred_cls, pred_reg = self.net.track(self._ndarray2tensor(search_crop))   
+            pred_cls = [pc.squeeze().cpu().numpy() for pc in pred_cls]             # [(33, 33), (17, 17)]
+            pred_reg = [pr.squeeze().cpu().numpy() for pr in pred_reg]             # [(4, 33, 33), (4, 17, 17)]
+
+        res_corner = []; score = []
+        for j, (cls_pd, reg_pd, stride) in enumerate(zip(pred_cls, pred_reg, self.stride)):
+            
+            size = cls_pd.shape[0]
+
+            r = self._r(reg_pd[2], reg_pd[3])
+            s = self._s(reg_pd[2], reg_pd[3])
+            pr = np.maximum(r / self.state.r, self.state.r / r)
+            ps = np.maximum(s / self.state.s, self.state.s / s)
+            penalty = np.exp(- (pr * ps - 1) * self.penalty_k)
+            pscore = cls_pd * penalty
+
+            window = get_hamming_window(size)
+            pscore = window * self.window_factor + \
+                            pscore * (1 - self.window_factor)
+
+            cv2.imshow("pscore_%d" % j, (pscore * 255).astype(np.uint8)); cv2.waitKey(5)
+            
+            r, c = np.unravel_index(pscore.argmax(), pscore.shape)
+            x, y = np.array([r, c]) * stride + reg_pd[:2, r, c]; w, h = reg_pd[2:, r, c]
+            center = np.array([x, y, w, h])
+            
+            show_bbox(search_crop, np.array(center2corner(center)), winname='search_crop_output_%d' % j, waitkey=5)
+
+            # ------------------------------------------------------
+            # get back!
+            center /= scale         # scale, ( w,  h)
+            center[:2] += shift     # shift, (xc, yc)
+            
+            # momentum
+            momentum = pscore[r, c] * self.momentum
+            center[2:] = center[2:] * momentum + self.state.center[2:] * (1 - momentum)     #  w,  h
+            
+            corner = np.array(center2corner(center))
+            
+            res_corner += [corner]; score += [cls_pd[r, c]]
+        
+        keep = np.argmax(score); score = score[keep]; res_corner = res_corner[keep]
+        show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output', waitkey=5)
+
+        self._update_state(res_corner)
+
+        return res_corner, score
+
+    def _track_whole_image(self, search_image):
+        """
+        Params:
+            template_image: {ndarray(H, W, C)}
+        Returns:
+            res_corner: {ndarray(N, 4)}
+            score: {ndarray(N)}
+        """
+        raise NotImplementedError("Error!")
 
     def _ndarray2tensor(self, ndarray):
         return torch.from_numpy(ndarray.transpose(2, 0, 1) / 255.).unsqueeze(0).float().to(self.device)
