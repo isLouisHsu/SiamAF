@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime : 2019-12-29 14:06:22
+@LastEditTime : 2019-12-29 19:46:19
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -124,7 +124,7 @@ configer.siamaf.train.clip_grad  = 10
 configer.siamaf.train.log_dir = '../logs/siamaf'
 configer.siamaf.train.ckpt = '../ckpt/siamaf.pkl'
 configer.siamaf.train.cuda = True
-configer.siamaf.train.n_epoch = 30
+configer.siamaf.train.n_epoch = 10
 configer.siamaf.train.resume = None
 
 configer.siamaf.tracker = edict()

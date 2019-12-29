@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime : 2019-12-29 14:05:30
+@LastEditTime : 2019-12-29 19:45:37
 @Update: 
 '''
 import sys
@@ -269,18 +269,22 @@ class HeatmapLoss(nn.Module):
                 # loss_cls_i = self.mse(cls_i, cls_gt_i); loss_cls += [loss_cls_i]
 
                 cls_i = torch.clamp(cls_i, 1e-6, 1 - 1e-6)
-                loss_cls_i = torch.where(cls_gt_i == 1, 
+                loss_cls_i = - torch.where(cls_gt_i == 1, 
                         ((1 - cls_i) ** self.alpha) * (     cls_gt_i  ** self.beta) * torch.log(    cls_i), 
                         (     cls_i  ** self.alpha) * ((1 - cls_gt_i) ** self.beta) * torch.log(1 - cls_i))
-                loss_cls_i = - loss_cls_i.mean()
-                loss_cls += [loss_cls_i]
+                loss_cls_i = loss_cls_i.mean(); loss_cls += [loss_cls_i]
                 
                 reg_gt_i = torch.from_numpy(np.concatenate([
                     self._offset(size, (cx, cy), s), self._size(size, (w, h))
                 ], axis=0)).to(reg_i.device).float()
                 loss_reg_i = self.l1(reg_i, reg_gt_i)
-                loss_reg_i = (loss_reg_i.mean(dim=0).unsqueeze(0) * cls_gt_i).mean()
-                loss_reg += [loss_reg_i]
+                
+                loss_reg_i = loss_reg_i.mean(dim=0)
+                loss_reg_i = torch.where(cls_gt_i == 1, loss_reg_i, torch.zeros_like(loss_reg_i))
+                loss_reg_i = loss_reg_i.sum(); loss_reg += [loss_reg_i]
+                
+                # loss_reg_i = (loss_reg_i.mean(dim=0).unsqueeze(0) * cls_gt_i).mean()
+                # loss_reg_i = loss_reg_i.mean(); loss_reg += [loss_reg_i]
 
         loss_cls = torch.stack(loss_cls).mean(); loss_reg = torch.stack(loss_reg).mean()
         loss_total = self.cls_weight * loss_cls + self.reg_weight * loss_reg
