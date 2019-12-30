@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime : 2019-12-30 13:27:28
+@LastEditTime : 2019-12-30 13:52:53
 @Update: 
 '''
 import sys
@@ -232,16 +232,16 @@ class HeatmapLoss(nn.Module):
 
         return offset
 
-    def _size(self, size, shape):
+    def _size(self, size, wh, stride):
         """
         Params:
             size:   {int}
-            shape:  {tuple(2)} w, h
+            wh:  {tuple(2)} w, h
         Returns:
             size: {ndarray(2, size, size)}
         """
-        size = list(map(lambda x: np.full((size, size), x, dtype=np.float), shape))
-        size = np.stack(size)
+        size = list(map(lambda x: np.full((size, size), x, dtype=np.float), wh))
+        size = np.stack(size) / stride
 
         return size
 
