@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime : 2019-12-29 19:46:19
+@LastEditTime : 2019-12-30 09:39:52
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -134,5 +134,5 @@ configer.siamaf.tracker.stride        = [4, 8]
 configer.siamaf.tracker.pad           = [lambda w, h: (w + h) / 2]
 configer.siamaf.tracker.padval        = 0.
 configer.siamaf.tracker.penalty_k     = 1.0
-configer.siamaf.tracker.window_factor = 0.32
+configer.siamaf.tracker.window_factor = 0.
 configer.siamaf.tracker.momentum      = 0.295

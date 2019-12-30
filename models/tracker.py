@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime : 2019-12-29 13:31:07
+@LastEditTime : 2019-12-30 09:36:24
 @Update: 
 '''
 import sys
@@ -358,7 +358,7 @@ class SiamAFTracker():
             res_corner += [corner]; score += [cls_pd[r, c]]
         
         keep = np.argmax(score); score = score[keep]; res_corner = res_corner[keep]
-        show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output', waitkey=5)
+        show_bbox(search_image, res_corner, score, self.state.center[:2], winname='search_image_output', waitkey=0)
 
         self._update_state(res_corner)
 
