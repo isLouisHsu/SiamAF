@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime : 2019-12-29 19:45:37
+@LastEditTime : 2019-12-30 13:27:28
 @Update: 
 '''
 import sys
@@ -228,7 +228,7 @@ class HeatmapLoss(nn.Module):
         y, x = np.meshgrid(x, y)
         xy = np.stack([x, y], axis=0)
 
-        offset = xy * stride - np.array(center)[:, np.newaxis, np.newaxis]
+        offset = np.array(center)[:, np.newaxis, np.newaxis] / stride - xy
 
         return offset
 

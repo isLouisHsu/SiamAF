@@ -5,7 +5,7 @@
 @Author: louishsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-12-02 09:55:52
-@LastEditTime : 2019-12-30 09:39:52
+@LastEditTime : 2019-12-30 13:29:29
 @Update: 
 '''
 from easydict import EasyDict as edict
@@ -108,8 +108,8 @@ configer.siamaf.loss.cls_weight = 1.
 configer.siamaf.loss.reg_weight = 1.
 configer.siamaf.loss.stride = [4, 8]
 configer.siamaf.loss.sigma  = 1.0
-configer.siamaf.loss.alpha  = 2.0
-configer.siamaf.loss.beta   = 4.0
+configer.siamaf.loss.alpha  = 0.    # 2.
+configer.siamaf.loss.beta   = 1.    # 4.
 
 configer.siamaf.optimizer = edict()
 configer.siamaf.optimizer.lr = 0.001

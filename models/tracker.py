@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 17:48:36
-@LastEditTime : 2019-12-30 09:36:24
+@LastEditTime : 2019-12-30 13:24:03
 @Update: 
 '''
 import sys
@@ -336,10 +336,12 @@ class SiamAFTracker():
             pscore = window * self.window_factor + \
                             pscore * (1 - self.window_factor)
 
-            cv2.imshow("pscore_%d" % j, (pscore * 255).astype(np.uint8)); cv2.waitKey(5)
+            # cv2.imshow("pscore_%d" % j, (pscore * 255).astype(np.uint8)); cv2.waitKey(5)
+            plt.figure(j); plt.imshow(pscore); plt.show()
             
             r, c = np.unravel_index(pscore.argmax(), pscore.shape)
-            x, y = np.array([r, c]) * stride + reg_pd[:2, r, c]; w, h = reg_pd[2:, r, c]
+            x, y = np.array([r, c]) * stride + reg_pd[:2, r, c] + (self.search_size - self.template_size) // 2
+            w, h = reg_pd[2:, r, c]
             center = np.array([x, y, w, h])
             
             show_bbox(search_crop, np.array(center2corner(center)), winname='search_crop_output_%d' % j, waitkey=5)
