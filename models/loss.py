@@ -6,7 +6,7 @@
 @Github: https://github.com/isLouisHsu
 @E-mail: is.louishsu@foxmail.com
 @Date: 2019-11-30 19:46:01
-@LastEditTime : 2019-12-30 13:52:53
+@LastEditTime : 2019-12-30 14:37:15
 @Update: 
 '''
 import sys
@@ -275,7 +275,7 @@ class HeatmapLoss(nn.Module):
                 loss_cls_i = loss_cls_i.mean(); loss_cls += [loss_cls_i]
                 
                 reg_gt_i = torch.from_numpy(np.concatenate([
-                    self._offset(size, (cx, cy), s), self._size(size, (w, h))
+                    self._offset(size, (cx, cy), s), self._size(size, (w, h), s)
                 ], axis=0)).to(reg_i.device).float()
                 loss_reg_i = self.l1(reg_i, reg_gt_i)
                 
